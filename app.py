@@ -23,6 +23,7 @@ app = Flask(__name__)
 # Secrets and configuration via environment variables for production
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key')
 
+
 # Support DATABASE_URL (Render/Heroku style); fallback to local SQLite
 database_url = os.getenv('DATABASE_URL', 'sqlite:///healthapp.db')
 # SQLAlchemy requires postgresql:// instead of postgres://
@@ -37,6 +38,8 @@ login_manager.login_view = 'login'
 @login_manager.unauthorized_handler
 def unauthorized():
     return jsonify({'error': 'Authentication required'}), 401
+with app.app_context():
+    db.create_all()
 
 # Database initialization complete
 
