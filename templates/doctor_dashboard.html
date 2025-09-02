@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Doctor Portal - NutriPattern AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="logo">NutriPattern AI</div>
+            <ul>
+                <li><a href="/dashboard" title="User Dashboard"><i class="fa fa-home"></i> <span class="sidebar-label">User Dashboard</span></a></li>
+                <li><a href="/doctor" class="active" title="Doctor Portal"><i class="fa fa-stethoscope"></i> <span class="sidebar-label">Doctor Portal</span></a></li>
+                <li><a href="/logout" title="Logout"><i class="fa fa-sign-out-alt"></i> <span class="sidebar-label">Logout</span></a></li>
+            </ul>
+        </aside>
+        <main>
+            <section class="dashboard-section" id="doctor-dashboard">
+                <div class="dashboard-hero">
+                    <div class="hero-text">
+                        <h1>Doctor Portal <span style="font-size:1.5rem;">👨‍⚕️</span></h1>
+                        <p style="font-size:1.1rem;color:#40916c;">Manage patient reports and provide expert guidance</p>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat-card">
+                            <i class="fa fa-users"></i>
+                            <div>
+                                <h3>{{ reports|length }}</h3>
+                                <p>Patient Reports</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fa fa-comments"></i>
+                            <div>
+                                <h3>{{ reports|selectattr('doctor_comment')|list|length }}</h3>
+                                <p>Commented</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if reports and reports|length > 0 %}
+                <div class="patient-reports-section">
+                    <h2><i class="fa fa-file-medical"></i> Patient Reports</h2>
+                    <div class="reports-grid">
+                        {% for report in reports %}
+                        <div class="report-card">
+                            <div class="report-header">
+                                <div class="patient-info">
+                                    <h3><i class="fa fa-user"></i> {{ users[report.user_id].username }}</h3>
+                                    <p><i class="fa fa-calendar"></i> {{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                                    <p><i class="fa fa-file"></i> {{ report.filename }}</p>
+                                </div>
+                                <div class="report-status">
+                                    {% if report.doctor_comment %}
+                                        <span class="status-badge commented"><i class="fa fa-check-circle"></i> Reviewed</span>
+                                    {% else %}
+                                        <span class="status-badge pending"><i class="fa fa-clock"></i> Pending</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="report-content">
+                                <div class="content-section">
+                                    <h4><i class="fa fa-flask"></i> Medical Parameters</h4>
+                                    <div class="parameters-grid">
+                                        {% for k, v in report.values_dict.items() %}
+                                        <div class="parameter-item">
+                                            <span class="param-name">{{ k.replace('_',' ').title() }}</span>
+                                            <span class="param-value">{{ v }}</span>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <div class="content-section">
+                                    <h4><i class="fa fa-exclamation-triangle"></i> Detected Conditions</h4>
+                                    <div class="conditions-list">
+                                        {% if report.conds_list and report.conds_list|length > 0 %}
+                                            {% for c in report.conds_list %}
+                                            <span class="condition-tag">{{ c }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="no-conditions">No specific conditions detected</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                {% if report.doctor_comment %}
+                                <div class="content-section">
+                                    <h4><i class="fa fa-comment-medical"></i> Your Comment</h4>
+                                    <div class="doctor-comment">
+                                        <p>{{ report.doctor_comment }}</p>
+                                        <small>Commented on {{ report.comment_timestamp.strftime('%Y-%m-%d %H:%M') if report.comment_timestamp else 'Unknown' }}</small>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="report-actions">
+                                {% if not report.doctor_comment %}
+                                <button type="button" class="btn-primary" onclick="showCommentForm('{{ report.id }}')">
+                                    <i class="fa fa-comment"></i> Add Comment
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn-secondary" onclick="editComment('{{ report.id }}', '{{ report.doctor_comment }}')">
+                                    <i class="fa fa-edit"></i> Edit Comment
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn-outline" onclick="viewFullReport('{{ report.id }}')">
+                                    <i class="fa fa-eye"></i> View Full Report
+                                </button>
+                            </div>
+                            
+                            <!-- Comment Form (Hidden by default) -->
+                            <div id="comment-form-{{ report.id }}" class="comment-form" style="display: none;">
+                                <form method="POST" action="/doctor/comment/{{ report.id }}">
+                                    <div class="form-group">
+                                        <label for="doctor_comment_{{ report.id }}">Medical Comment:</label>
+                                        <textarea 
+                                            id="doctor_comment_{{ report.id }}"
+                                            name="doctor_comment" 
+                                            rows="4" 
+                                            placeholder="Provide your medical assessment, recommendations, or observations..."
+                                            required></textarea>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn-primary">
+                                            <i class="fa fa-save"></i> Save Comment
+                                        </button>
+                                        <button type="button" class="btn-outline" onclick="hideCommentForm('{{ report.id }}')">
+                                            <i class="fa fa-times"></i> Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fa fa-file-medical"></i>
+                    </div>
+                    <h3>No Patient Reports Yet</h3>
+                    <p>When patients share their medical reports with doctors, they will appear here for your review and comments.</p>
+                    <div class="empty-actions">
+                        <a href="/dashboard" class="btn-primary">
+                            <i class="fa fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+    <!-- Full Report Modal -->
+    <div id="reportModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Full Patient Report</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Comment form management
+        function showCommentForm(reportId) {
+            document.getElementById(`comment-form-${reportId}`).style.display = 'block';
+        }
+        
+        function hideCommentForm(reportId) {
+            document.getElementById(`comment-form-${reportId}`).style.display = 'none';
+        }
+        
+        function editComment(reportId, currentComment) {
+            const form = document.getElementById(`comment-form-${reportId}`);
+            const textarea = document.getElementById(`doctor_comment_${reportId}`);
+            textarea.value = currentComment;
+            form.style.display = 'block';
+        }
+        
+        // Modal management
+        function viewFullReport(reportId) {
+            // This would typically fetch full report data
+            document.getElementById('reportModal').style.display = 'block';
+            document.getElementById('modalBody').innerHTML = `
+                <p>Full report details for report ID: ${reportId}</p>
+                <p>This would show the complete medical report, images, and detailed analysis.</p>
+            `;
+        }
+        
+        function closeModal() {
+            document.getElementById('reportModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('reportModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html> 

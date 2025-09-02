@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Records - NutriPattern AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="patient-records-container">
+        <header class="patient-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="/doctor-portal" class="back-btn"><i class="fa fa-arrow-left"></i> Back to Portal</a>
+                    <h1><i class="fa fa-user"></i> Patient Records</h1>
+                </div>
+                <div class="user-info">
+                    <span>Dr. {{ current_user.username }}</span>
+                    <a href="/logout" class="logout-btn"><i class="fa fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </header>
+        
+        <main class="patient-main">
+            <!-- Patient Information Card -->
+            <div class="patient-info-card">
+                <div class="patient-header-info">
+                    <div class="patient-avatar">
+                        <i class="fa fa-user-circle"></i>
+                    </div>
+                    <div class="patient-details">
+                        <h2>{{ patient.username }}</h2>
+                        <div class="patient-meta">
+                            <span class="patient-id"><i class="fa fa-id-card"></i> ID: {{ patient.patient_id }}</span>
+                            <span class="patient-age"><i class="fa fa-birthday-cake"></i> Age: {{ patient.age or 'N/A' }}</span>
+                            <span class="patient-gender"><i class="fa fa-venus-mars"></i> {{ patient.gender or 'N/A' }}</span>
+                        </div>
+                        <div class="patient-physical">
+                            <span class="patient-height"><i class="fa fa-ruler-vertical"></i> Height: {{ patient.height or 'N/A' }} cm</span>
+                            <span class="patient-weight"><i class="fa fa-weight"></i> Weight: {{ patient.weight or 'N/A' }} kg</span>
+                            <span class="patient-goal"><i class="fa fa-bullseye"></i> Goal: {{ patient.goal.replace('_', ' ').title() if patient.goal else 'N/A' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Medical Reports Section -->
+            <div class="reports-section">
+                <h3><i class="fa fa-file-medical"></i> Medical Reports</h3>
+                
+                {% if reports and reports|length > 0 %}
+                <div class="reports-grid">
+                    {% for report in reports %}
+                    <div class="report-card">
+                        <div class="report-header">
+                            <div class="report-info">
+                                <h4><i class="fa fa-file"></i> {{ report.filename }}</h4>
+                                <p><i class="fa fa-calendar"></i> {{ report.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                            </div>
+                            <div class="report-status">
+                                {% if report.doctor_comment %}
+                                    <span class="status-badge commented"><i class="fa fa-check-circle"></i> Reviewed</span>
+                                {% else %}
+                                    <span class="status-badge pending"><i class="fa fa-clock"></i> Pending Review</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="report-content">
+                            <div class="content-section">
+                                <h5><i class="fa fa-flask"></i> Medical Parameters</h5>
+                                <div class="parameters-grid">
+                                    {% for k, v in report.values_dict.items() %}
+                                    <div class="parameter-item">
+                                        <span class="param-name">{{ k.replace('_',' ').title() }}</span>
+                                        <span class="param-value">{{ v }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="content-section">
+                                <h5><i class="fa fa-exclamation-triangle"></i> Detected Conditions</h5>
+                                <div class="conditions-list">
+                                    {% if report.conds_list and report.conds_list|length > 0 %}
+                                        {% for c in report.conds_list %}
+                                        <span class="condition-tag">{{ c }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="no-conditions">No specific conditions detected</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="content-section">
+                                <h5><i class="fa fa-apple-alt"></i> Diet Plan</h5>
+                                {% if report.diet_plan %}
+                                    <div class="diet-plan-display">
+                                        <p><strong>Diet Plan Generated:</strong> Yes</p>
+                                        <div class="diet-plan-details">
+                                            {% set diet_data = report.diet_plan|from_json %}
+                                            {% if diet_data %}
+                                                <table class="diet-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Meal</th>
+                                                            <th>Food Items</th>
+                                                            <th>Calories</th>
+                                                            <th>Health Benefits</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for meal in diet_data %}
+                                                        <tr>
+                                                            <td>
+                                                                <span class="meal-icon">
+                                                                    {% if meal.meal|lower == 'breakfast' %}🍳
+                                                                    {% elif meal.meal|lower == 'lunch' %}🥗
+                                                                    {% elif meal.meal|lower == 'dinner' %}🍲
+                                                                    {% elif meal.meal|lower == 'snack' %}🍎
+                                                                    {% else %}🍽️{% endif %}
+                                                                </span>
+                                                                <strong>{{ meal.meal }}</strong>
+                                                            </td>
+                                                            <td>{{ meal.items }}</td>
+                                                            <td><span class="cal-badge">{{ meal.calories }}</span></td>
+                                                            <td>{{ meal.reason }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            {% else %}
+                                                <p>Diet plan data format error.</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p class="no-data">No diet plan available for this report.</p>
+                                {% endif %}
+                            </div>
+                            
+                            {% if report.doctor_comment %}
+                            <div class="content-section">
+                                <h5><i class="fa fa-comment-medical"></i> Your Previous Comment</h5>
+                                <div class="doctor-comment">
+                                    <p>{{ report.doctor_comment }}</p>
+                                    <small>Commented on {{ report.comment_timestamp.strftime('%Y-%m-%d %H:%M') if report.comment_timestamp else 'Unknown' }}</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="report-actions">
+                            {% if not report.doctor_comment %}
+                            <button type="button" class="btn-primary" onclick="showCommentForm('{{ report.id }}')">
+                                <i class="fa fa-comment"></i> Add Comment
+                            </button>
+                            {% else %}
+                            <button type="button" class="btn-secondary" onclick="editComment('{{ report.id }}', '{{ report.doctor_comment }}')">
+                                <i class="fa fa-edit"></i> Edit Comment
+                            </button>
+                            {% endif %}
+                            
+                            <button type="button" class="btn-outline" onclick="showMessageForm('{{ report.user_id }}', '{{ report.filename }}')">
+                                <i class="fa fa-envelope"></i> Send Message
+                            </button>
+                        </div>
+                        
+                        <!-- Comment Form (Hidden by default) -->
+                        <div id="comment-form-{{ report.id }}" class="comment-form" style="display: none;">
+                            <form method="POST" action="/doctor/comment/{{ report.id }}">
+                                <div class="form-group">
+                                    <label for="doctor_comment_{{ report.id }}">Medical Assessment & Recommendations:</label>
+                                    <textarea 
+                                        id="doctor_comment_{{ report.id }}"
+                                        name="doctor_comment" 
+                                        rows="4" 
+                                        placeholder="Provide your medical assessment, recommendations, observations, or treatment suggestions..."
+                                        required></textarea>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fa fa-save"></i> Save Comment
+                                    </button>
+                                    <button type="button" class="btn-outline" onclick="hideCommentForm('{{ report.id }}')">
+                                        <i class="fa fa-times"></i> Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fa fa-file-medical"></i>
+                    </div>
+                    <h3>No Medical Reports Yet</h3>
+                    <p>This patient hasn't uploaded any medical reports yet.</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Activity Logs Section -->
+            <div class="activity-section">
+                <h3><i class="fa fa-walking"></i> Activity & Wellness Tracking</h3>
+                
+                {% if activity_logs and activity_logs|length > 0 %}
+                <div class="activity-grid">
+                    {% for log in activity_logs %}
+                    <div class="activity-card">
+                        <div class="activity-date">{{ log.date.strftime('%Y-%m-%d') }}</div>
+                        <div class="activity-stats">
+                            <div class="stat-item">
+                                <i class="fa fa-shoe-prints"></i>
+                                <span>{{ log.steps }} steps</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fa fa-dumbbell"></i>
+                                <span>{{ log.exercise }}</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fa fa-fire"></i>
+                                <span>{{ log.calories }} kcal</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fa fa-walking"></i>
+                    </div>
+                    <h3>No Activity Data</h3>
+                    <p>This patient hasn't logged any activity yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </main>
+    </div>
+    
+    <!-- Message Form Modal -->
+    <div id="message-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Send Message to Patient</h2>
+                <span class="close" onclick="closeMessageModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="message-form">
+                    <div class="form-group">
+                        <label for="message-content">Message Content:</label>
+                        <textarea 
+                            id="message-content" 
+                            name="content" 
+                            rows="6" 
+                            placeholder="Type your message, suggestions, or recommendations for the patient..."
+                            required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="message-type">Message Type:</label>
+                        <select id="message-type" name="message_type">
+                            <option value="suggestion">Health Suggestion</option>
+                            <option value="diet_update">Diet Update</option>
+                            <option value="reminder">Health Reminder</option>
+                            <option value="general">General Message</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">
+                            <i class="fa fa-paper-plane"></i> Send Message
+                        </button>
+                        <button type="button" class="btn-outline" onclick="closeMessageModal()">
+                            <i class="fa fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Comment form management
+        function showCommentForm(reportId) {
+            document.getElementById(`comment-form-${reportId}`).style.display = 'block';
+        }
+        
+        function hideCommentForm(reportId) {
+            document.getElementById(`comment-form-${reportId}`).style.display = 'none';
+        }
+        
+        function editComment(reportId, currentComment) {
+            const form = document.getElementById(`comment-form-${reportId}`);
+            const textarea = document.getElementById(`doctor_comment_${reportId}`);
+            textarea.value = currentComment;
+            form.style.display = 'block';
+        }
+        
+        // Message form management
+        let currentPatientId = null;
+        let currentReportName = null;
+        
+        function showMessageForm(patientId, reportName) {
+            currentPatientId = patientId;
+            currentReportName = reportName;
+            document.getElementById('message-modal').style.display = 'block';
+            
+            // Pre-fill message content with context
+            const contentArea = document.getElementById('message-content');
+            contentArea.value = `Regarding your medical report "${reportName}":\n\n`;
+        }
+        
+        function closeMessageModal() {
+            document.getElementById('message-modal').style.display = 'none';
+            document.getElementById('message-form').reset();
+        }
+        
+        // Handle message form submission
+        document.getElementById('message-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const content = document.getElementById('message-content').value;
+            const messageType = document.getElementById('message-type').value;
+            
+            try {
+                const response = await fetch('/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        receiver_id: currentPatientId,
+                        content: content,
+                        message_type: messageType
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Message sent successfully!');
+                    closeMessageModal();
+                } else {
+                    alert('Error sending message: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error sending message. Please try again.');
+            }
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('message-modal');
+            if (event.target === modal) {
+                closeMessageModal();
+            }
+        }
+    </script>
+</body>
+</html>

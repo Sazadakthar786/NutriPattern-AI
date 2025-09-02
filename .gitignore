@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Environments
+venv/
+.venv/
+env/
+
+# IDE/OS
+.DS_Store
+.idea/
+.vscode/
+
+# Flask/SQLAlchemy
+instance/
+*.sqlite
+*.db
+
+# Logs
+*.log
+
+# Secrets
+.env
+
+# App data
+uploads/
+plans.json
+
+# Node/bundled assets (if any)
+node_modules/
+
+

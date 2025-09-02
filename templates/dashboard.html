@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - NutriPattern AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="logo">NutriPattern AI</div>
+            <ul>
+                <li><a href="/dashboard" class="active" title="Dashboard"><i class="fa fa-home"></i> <span class="sidebar-label">Dashboard</span></a></li>
+                <li><a href="#upload" title="Upload Medical Report"><i class="fa fa-upload"></i> <span class="sidebar-label">Upload</span></a></li>
+                <li><a href="#activity" title="Log Activity"><i class="fa fa-walking"></i> <span class="sidebar-label">Activity Log</span></a></li>
+                <li><a href="#diet" title="View Diet Chart"><i class="fa fa-apple-alt"></i> <span class="sidebar-label">Diet Chart</span></a></li>
+                <li><a href="#milestones" title="Milestones"><i class="fa fa-trophy"></i> <span class="sidebar-label">Milestones</span></a></li>
+                <li><a href="#wellness" title="Wellness"><i class="fa fa-heartbeat"></i> <span class="sidebar-label">Wellness</span></a></li>
+                <li><a href="#profile" title="Profile"><i class="fa fa-user"></i> <span class="sidebar-label">Profile</span></a></li>
+                 <li><a href="#messages" title="Messages" class="messages-link">
+                     <i class="fa fa-envelope"></i> <span class="sidebar-label">Messages</span>
+                     {% if unread_messages > 0 %}
+                     <span class="message-badge">{{ unread_messages }}</span>
+                     {% endif %}
+                 </a></li>
+                 <!-- Doctor portal access removed - now separate login system -->
+                 <li><a href="/logout" title="Logout"><i class="fa fa-sign-out-alt"></i> <span class="sidebar-label">Logout</span></a></li>
+            </ul>
+        </aside>
+        <main>
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="dashboard-section active">
+                {% set present_keys = [] %}
+                {% for key, values in trend_data.items() %}
+                    {% if values and values|sum > 0 %}
+                        {% set _ = present_keys.append(key) %}
+                    {% endif %}
+                {% endfor %}
+                {% set has_data = present_keys|length > 0 %}
+                <div class="dashboard-hero" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+                    <div class="hero-text">
+                        <h1>Welcome, {{ user.username }}! <span style="font-size:1.5rem;">👋</span></h1>
+                        <p style="font-size:1.1rem;color:#40916c;">Ready to take charge of your health today?</p>
+                        {% if user.role == 'user' %}
+                        <div class="patient-id-display" style="background: rgba(255,255,255,0.9); padding: 12px 20px; border-radius: 15px; margin-top: 15px; display: inline-block;">
+                            <span style="font-weight: 600; color: #2d6a4f;">Your Patient ID: <code style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 1.1rem;">{{ user.patient_id }}</code></span>
+                            <small style="display: block; margin-top: 5px; color: #666;">Share this ID with your doctor to access your medical records</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <h2>Your Medical Reports</h2>
+                {% if reports and reports|length > 0 %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Report</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td>{{ report.filename }}</td>
+                            <td>{{ report.timestamp.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <button type="button" onclick="toggleDetails('details-{{ report.id }}')">Details</button>
+                            </td>
+                        </tr>
+                        <tr id="details-{{ report.id }}" style="display:none; background:#f9f9f9;">
+                            <td colspan="3">
+                                <strong>Extracted Values:</strong>
+                                <ul>
+                                {% for k, v in report.values_dict.items() %}
+                                    <li>{{ k.replace('_',' ').title() }}: {{ v }}</li>
+                                {% endfor %}
+                                </ul>
+                                <strong>Conditions:</strong>
+                                <ul>
+                                {% for c in report.conds_list %}
+                                    <li>{{ c }}</li>
+                                {% endfor %}
+                                </ul>
+                                {% if report.doctor_comment %}
+                                <div style="margin-top:10px;"><strong>Doctor's Comment:</strong> {{ report.doctor_comment }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <script>
+                function toggleDetails(id) {
+                    var row = document.getElementById(id);
+                    if (row.style.display === 'none') {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+                </script>
+                {% else %}
+                <p>No reports uploaded yet.</p>
+                {% endif %}
+                {% if comparison and comparison|length > 0 %}
+                <h3>Report Comparison (Latest vs Previous)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Previous</th>
+                            <th>Latest</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for key, comp in comparison.items() %}
+                        <tr>
+                            <td>{{ key|capitalize }}</td>
+                            <td>{{ comp.previous }}</td>
+                            <td>{{ comp.latest }}</td>
+                            <td>
+                                {% if comp.status == 'improved' %}<span style="color:green;">Improved</span>{% endif %}
+                                {% if comp.status == 'worse' %}<span style="color:red;">Worse</span>{% endif %}
+                                {% if comp.status == 'no_change' %}<span style="color:gray;">No Change</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                {% if not has_data %}
+                <div class="dashboard-empty-state">
+                    <div class="empty-illustration">
+                        <!-- Inline SVG from unDraw: https://undraw.co/illustrations -->
+                        <svg width="220" height="220" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="400" cy="500" rx="320" ry="60" fill="#e0f7fa"/>
+                            <rect x="320" y="220" width="160" height="200" rx="40" fill="#43aa8b"/>
+                            <rect x="360" y="260" width="80" height="120" rx="20" fill="#fff"/>
+                            <circle cx="400" cy="320" r="18" fill="#43aa8b"/>
+                            <rect x="390" y="340" width="20" height="30" rx="8" fill="#43aa8b"/>
+                            <ellipse cx="400" cy="420" rx="30" ry="8" fill="#b7e4c7"/>
+                        </svg>
+                    </div>
+                    <div class="empty-welcome">
+                        <h2>Welcome, {{ user.username|capitalize }}!</h2>
+                        <p>Your health journey starts here. Upload your first medical report to unlock personalized analytics, diet plans, and more!</p>
+                        <button class="cta-btn" onclick="showUploadSection()">Upload Your First Report</button>
+                        <div class="empty-features">
+                            <div class="empty-feature"><i class="fa fa-chart-line"></i> Track Health Trends</div>
+                            <div class="empty-feature"><i class="fa fa-apple-alt"></i> Get Personalized Diets</div>
+                            <div class="empty-feature"><i class="fa fa-robot"></i> Chat with AI Doctor</div>
+                        </div>
+                        <div class="empty-progress">
+                            <div class="empty-progress-label">Health Journey Progress</div>
+                            <div class="empty-progress-bar"><div class="empty-progress-inner" style="width:0%"></div></div>
+                            <div class="empty-progress-value">0% Complete</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                                 {% if has_data %}
+                 <h3>Health Analytics</h3>
+                 <div class="analytics-summary-cards">
+                     {% for key in present_keys %}
+                     <div class="analytics-card analytics-{{ comparison.get(key, {}).get('status', 'no_change') }}">
+                         <div class="analytics-card-title">{{ key.replace('_',' ').title() }}</div>
+                         <div class="analytics-card-value">{{ comparison.get(key, {}).get('latest', trend_data.get(key, [0])[-1] if trend_data.get(key) else 0) }}</div>
+                         <div class="analytics-card-status">{% if comparison.get(key, {}).get('status') == 'improved' %}Improved{% elif comparison.get(key, {}).get('status') == 'worse' %}Worse{% else %}No Change{% endif %}</div>
+                     </div>
+                     {% endfor %}
+                 </div>
+                <div class="analytics-chart-controls">
+                    <button onclick="setChartType('line')">Line</button>
+                    <button onclick="setChartType('bar')">Bar</button>
+                    <button onclick="setChartType('radar')">Radar</button>
+                </div>
+                <canvas id="trendChart" width="600" height="300"></canvas>
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <script>
+                const trendLabels = {{ trend_labels|tojson }};
+                const trendData = {{ trend_data|tojson }};
+                const presentKeys = Object.keys(trendData).filter(k => trendData[k].some(v => v !== 0));
+                const paramColors = ['#e76f51','#40916c','#577590','#f4a261','#b5838d','#43aa8b','#f9c74f','#277da1','#ff6f61','#8d99ae','#f3722c','#43bccd'];
+                let chartType = 'line';
+                let chart;
+                function renderChart(type) {
+                    if (chart) chart.destroy();
+                    const ctx = document.getElementById('trendChart').getContext('2d');
+                    chart = new Chart(ctx, {
+                        type: type,
+                        data: {
+                            labels: trendLabels,
+                            datasets: presentKeys.map((k,i) => ({
+                                label: k.replace('_',' ').toUpperCase(),
+                                data: trendData[k],
+                                borderColor: paramColors[i%paramColors.length],
+                                backgroundColor: paramColors[i%paramColors.length]+"33",
+                                fill: type==='radar',
+                                tension: 0.3
+                            }))
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: { display: true, text: 'Health Parameter Trends' }
+                            }
+                        }
+                    });
+                }
+                function setChartType(type) {
+                    chartType = type;
+                    renderChart(type);
+                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    renderChart(chartType);
+                });
+                </script>
+                {% endif %}
+            </section>
+            <section class="dashboard-section" id="upload-section" style="display:none;">
+                <h2>Upload Medical Report</h2>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    <ul class="flashes">
+                      {% for category, message in messages %}
+                        <li class="flash-{{ category }}">{{ message }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                {% endwith %}
+                <form method="POST" action="/upload" enctype="multipart/form-data">
+                    <input type="file" name="report_file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <label for="ocr_language">Report Language:</label>
+                    <select name="ocr_language" id="ocr_language" required>
+                        <option value="eng">English</option>
+                        <option value="hin">Hindi</option>
+                        <option value="tel">Telugu</option>
+                    </select>
+                    <label><input type="checkbox" name="shared_with_doctor"> Share with Doctor</label>
+                    <button type="submit">Upload</button>
+                </form>
+            </section>
+            <section class="dashboard-section" id="activity-section" style="display:none;">
+                <h2>Activity Log</h2>
+                <form method="POST" action="/activity-log">
+                    <label for="steps">Steps:</label>
+                    <input type="number" id="steps" name="steps" min="0" required>
+                    <label for="exercise">Exercise (type):</label>
+                    <input type="text" id="exercise" name="exercise" maxlength="100" required>
+                    <label for="calories">Calories Burned:</label>
+                    <input type="number" id="calories" name="calories" min="0" required>
+                    <button type="submit">Add Activity</button>
+                </form>
+                {% if activity_logs and activity_logs|length > 0 %}
+                <h3>Your Activity History</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Steps</th>
+                            <th>Exercise</th>
+                            <th>Calories</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in activity_logs %}
+                        <tr>
+                            <td>{{ log.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ log.steps }}</td>
+                            <td>{{ log.exercise }}</td>
+                            <td>{{ log.calories }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No activity logs yet.</p>
+                {% endif %}
+            </section>
+                         <section class="dashboard-section" id="diet-section" style="display:none;">
+                 <h2><i class="fa fa-apple-alt" style="color:#40916c;"></i> Your Personalized Diet Chart</h2>
+                 <p style="color:#555; margin-bottom:18px;">This plan is tailored to your health needs and goals. Each meal includes a reason for its recommendation.</p>
+                 
+                 {% if reports and reports|length > 0 %}
+                 <div class="health-summary" style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #40916c;">
+                     <h3 style="color: #2d6a4f; margin-top: 0;">Health Summary for Diet Planning</h3>
+                     <div class="health-params" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                         {% for report in reports %}
+                             {% if report.values_dict %}
+                                 {% for param, value in report.values_dict.items() %}
+                                 <div class="param-card" style="background: white; padding: 12px; border-radius: 8px; border: 1px solid #e9ecef;">
+                                     <strong style="color: #40916c;">{{ param.replace('_',' ').title() }}:</strong>
+                                     <span style="color: #666;">{{ value }}</span>
+                                 </div>
+                                 {% endfor %}
+                             {% endif %}
+                         {% endfor %}
+                     </div>
+                 </div>
+                 {% endif %}
+                 
+                 {% if diet_chart and diet_chart|length > 0 %}
+                 <table class="diet-table">
+                     <thead>
+                         <tr>
+                             <th>Meal</th>
+                             <th>Food Items</th>
+                             <th>Calories</th>
+                             <th>Health Benefits & Reasons</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         {% for row in diet_chart %}
+                         <tr>
+                             <td>
+                                 <span class="meal-icon">
+                                     {% if row['meal']|lower == 'breakfast' %}🍳
+                                     {% elif row['meal']|lower == 'lunch' %}🥗
+                                     {% elif row['meal']|lower == 'dinner' %}🍲
+                                     {% elif row['meal']|lower == 'snack' %}🍎
+                                     {% else %}🍽️{% endif %}
+                                 </span> 
+                                 <b>{{ row['meal'] }}</b>
+                             </td>
+                             <td>
+                                 <div class="food-items">
+                                     {% if row['items'] is string %}
+                                         {{ row['items'] }}
+                                     {% else %}
+                                         {% for item in row['items'] %}
+                                             <span class="food-item">{{ item }}</span>
+                                         {% endfor %}
+                                     {% endif %}
+                                 </div>
+                             </td>
+                             <td><span class="cal-badge">{{ row['calories'] }}</span></td>
+                             <td>
+                                 <div class="diet-reason">
+                                     {% if row['reason'] %}
+                                         {{ row['reason'] }}
+                                     {% else %}
+                                         <span class="reason-placeholder">
+                                             {% if 'diabetes' in user.goal|lower %}
+                                                 Helps regulate blood sugar levels
+                                             {% elif 'weight' in user.goal|lower %}
+                                                 Low-calorie, nutrient-dense option
+                                             {% elif 'muscle' in user.goal|lower %}
+                                                 High protein for muscle building
+                                             {% else %}
+                                                 Balanced nutrition for overall health
+                                             {% endif %}
+                                         </span>
+                                     {% endif %}
+                                 </div>
+                             </td>
+                         </tr>
+                         {% endfor %}
+                     </tbody>
+                 </table>
+                 
+                 <div class="diet-tips" style="background: #e8f5e8; padding: 20px; border-radius: 12px; margin-top: 20px;">
+                     <h3 style="color: #2d6a4f; margin-top: 0;">💡 Diet Tips Based on Your Health Profile</h3>
+                     <ul style="color: #555; line-height: 1.6;">
+                         {% if reports and reports|length > 0 %}
+                             {% for report in reports %}
+                                 {% if report.conds_list %}
+                                     {% for condition in report.conds_list %}
+                                         {% if 'diabetes' in condition|lower %}
+                                             <li><strong>Diabetes Management:</strong> Focus on low glycemic index foods, regular meal timing, and portion control.</li>
+                                         {% elif 'anemia' in condition|lower %}
+                                             <li><strong>Iron Deficiency:</strong> Include iron-rich foods like spinach, lentils, and lean meats.</li>
+                                         {% elif 'cholesterol' in condition|lower %}
+                                             <li><strong>Heart Health:</strong> Choose foods low in saturated fats and high in fiber.</li>
+                                         {% endif %}
+                                     {% endfor %}
+                                 {% endif %}
+                             {% endfor %}
+                         {% endif %}
+                         <li><strong>General Health:</strong> Stay hydrated, eat a variety of colorful vegetables, and maintain regular meal times.</li>
+                     </ul>
+                 </div>
+                 {% else %}
+                 <div class="no-diet-state" style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 12px;">
+                     <div style="font-size: 3rem; margin-bottom: 20px;">🥗</div>
+                     <h3 style="color: #2d6a4f;">No Diet Chart Available</h3>
+                     <p style="color: #666;">Upload a medical report to get your personalized diet plan based on your health parameters.</p>
+                     <button onclick="showUploadSection()" class="cta-btn">Upload Medical Report</button>
+                 </div>
+                 {% endif %}
+             </section>
+            <section class="dashboard-section" id="milestones-section" style="display:none;">
+                <h2>Milestones</h2>
+                {% if milestones and milestones|length > 0 %}
+                <div class="milestones-list" style="display: flex; flex-wrap: wrap; gap: 18px;">
+                    {% for m in milestones %}
+                    <div class="milestone-card" style="background: #fff7e6; border-radius: 14px; box-shadow: 0 2px 8px rgba(255,193,7,0.08); padding: 18px 22px; min-width: 220px; display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 2.2rem; margin-bottom: 8px;">{{ m.icon }}</div>
+                        <div style="font-weight: bold; font-size: 1.15rem; margin-bottom: 4px;">{{ m.name }}</div>
+                        <div style="font-size: 0.98rem; color: #b26a00; margin-bottom: 8px; text-align: center;">{{ m.desc }}</div>
+                        {% if m.unlocked %}
+                        <span style="background: #ffe082; color: #795548; font-weight: 600; border-radius: 8px; padding: 4px 14px; font-size: 0.98rem;">Unlocked!</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p>No milestones achieved yet.</p>
+                {% endif %}
+            </section>
+            <section class="dashboard-section" id="wellness-section" style="display:none;">
+                <h2><i class="fa fa-heartbeat" style="color:#e63946;"></i> Wellness</h2>
+                <div class="wellness-flex">
+                    <div class="wellness-progress">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="54" stroke="#e0e0e0" stroke-width="12" fill="none"/>
+                            <circle cx="60" cy="60" r="54" stroke="#40916c" stroke-width="12" fill="none" stroke-dasharray="339.292" stroke-dashoffset="{{ 339.292 - (wellness_score/100)*339.292 }}" stroke-linecap="round"/>
+                            <text x="50%" y="54%" text-anchor="middle" fill="#40916c" font-size="2.1rem" font-weight="bold" dy=".3em">{{ wellness_score }}</text>
+                        </svg>
+                        <div class="wellness-label">Score / 100</div>
+                    </div>
+                    <div class="wellness-motivation">
+                        <blockquote class="wellness-quote">“Your health is your wealth. Every small step counts!”</blockquote>
+                        <div class="wellness-tips-grid">
+                            <div class="wellness-tip-card"><span>💧</span> Drink water</div>
+                            <div class="wellness-tip-card"><span>🚶‍♂️</span> Move every hour</div>
+                            <div class="wellness-tip-card"><span>🥦</span> Eat veggies</div>
+                            <div class="wellness-tip-card"><span>🛌</span> Sleep 7-8h</div>
+                            <div class="wellness-tip-card"><span>🧘‍♂️</span> Breathe/meditate</div>
+                            <div class="wellness-tip-card"><span>🎉</span> Celebrate wins</div>
+                        </div>
+                        <div class="wellness-random-tip"><span style="font-size:1.3rem;">💡</span> {{ wellness_tip }}</div>
+                    </div>
+                </div>
+            </section>
+                         <section class="dashboard-section" id="messages-section" style="display:none;">
+                 <h2><i class="fa fa-envelope" style="color:#e63946;"></i> Messages & Doctor Communications</h2>
+                 <div class="messages-container">
+                     <div class="messages-tabs">
+                         <button class="tab-btn active" onclick="showMessagesTab('received')">Received ({{ unread_messages }})</button>
+                         <button class="tab-btn" onclick="showMessagesTab('sent')">Sent</button>
+                     </div>
+                     
+                     <div id="received-messages" class="messages-tab-content">
+                         <div class="messages-list" id="received-messages-list">
+                             <div class="loading-messages">Loading messages...</div>
+                         </div>
+                     </div>
+                     
+                     <div id="sent-messages" class="messages-tab-content" style="display:none;">
+                         <div class="messages-list" id="sent-messages-list">
+                             <div class="loading-messages">Loading messages...</div>
+                         </div>
+                     </div>
+                 </div>
+             </section>
+             
+             <section class="dashboard-section" id="profile-section" style="display:none;">
+                 <h2><i class="fa fa-user-circle" style="color:#457b9d;"></i> Profile & Settings</h2>
+                <div class="profile-flex">
+                    <div class="profile-avatar-block">
+                        <div class="profile-avatar">
+                            {% if user.profile_image %}
+                                <img src="/{{ user.profile_image }}" alt="Profile Image"/>
+                            {% else %}
+                                <img src="https://api.dicebear.com/7.x/bottts/svg?seed={{ user.username }}" alt="Profile Image"/>
+                            {% endif %}
+                        </div>
+                        <form method="POST" action="/upload-profile-image" enctype="multipart/form-data" class="profile-img-form">
+                            <input type="file" name="profile_image" accept="image/jpeg,image/png" id="profile_image_input" style="display:none;" onchange="this.form.submit()">
+                            <label for="profile_image_input" class="profile-img-btn" style="cursor:pointer;">Change Image</label>
+                        </form>
+                    </div>
+                    <div class="profile-details">
+                        <div class="profile-row"><span class="profile-label">Username:</span> <b>{{ user.username }}</b></div>
+                        <div class="profile-row"><span class="profile-label">Age:</span> {{ user.age or 'N/A' }}</div>
+                        <div class="profile-row"><span class="profile-label">Gender:</span> {{ user.gender or 'N/A' }}</div>
+                        <div class="profile-row"><span class="profile-label">Height:</span> {{ user.height or 'N/A' }} cm</div>
+                        <div class="profile-row"><span class="profile-label">Weight:</span> {{ user.weight or 'N/A' }} kg</div>
+                        <div class="profile-row"><span class="profile-label">Goal:</span> <span class="goal-badge">{{ user.goal.replace('_',' ').title() }}</span></div>
+                        <form method="POST" action="/update-goal" class="profile-form">
+                            <label for="goal">Update Health Goal:</label>
+                            <select name="goal" id="goal">
+                                <option value="weight_loss" {% if user.goal == 'weight_loss' %}selected{% endif %}>Weight Loss</option>
+                                <option value="muscle_gain" {% if user.goal == 'muscle_gain' %}selected{% endif %}>Muscle Gain</option>
+                                <option value="diabetes_control" {% if user.goal == 'diabetes_control' %}selected{% endif %}>Diabetes Control</option>
+                            </select>
+                            <button type="submit">Update Goal</button>
+                        </form>
+                        <form method="POST" action="/update-password" class="profile-form">
+                            <label for="password">Change Password:</label>
+                            <input type="password" name="password" id="password" placeholder="New Password" required>
+                            <button type="submit">Update Password</button>
+                        </form>
+                    </div>
+                    <div class="profile-targets">
+                        <div class="target-title">Target Progress</div>
+                        <div class="target-bar">
+                            <div class="target-bar-inner" style="width: {{ (wellness_score or 0) }}%;"></div>
+                        </div>
+                        <div class="target-label">Wellness Score: {{ wellness_score }}/100</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <footer>
+        <div>&copy; 2025 NutriPattern AI | Designed by SHAIK SAZAD AKTHAR</div>
+    </footer>
+    <div id="chatbot-widget" style="position: fixed; bottom: 24px; right: 24px; z-index: 1000;">
+        <div id="chatbot-header" style="background: #40916c; color: #fff; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 2rem;">
+            <i class="fa fa-robot"></i>
+        </div>
+        <div id="chatbot-body" style="background: #fff; border: 1px solid #b7e4c7; border-radius: 12px; max-height: 320px; overflow-y: auto; display: none; padding: 12px; width: 340px; margin-top: 8px;">
+            <div id="chat-history" style="font-size: 0.98rem; margin-bottom: 8px;"></div>
+            <form id="chatbot-form" style="display: flex; gap: 6px;">
+                <input type="text" id="chatbot-input" placeholder="Ask me anything..." style="flex:1; padding: 6px; border-radius: 6px; border: 1px solid #b7e4c7;">
+                <button type="submit" style="background: #40916c; color: #fff; border: none; border-radius: 6px; padding: 6px 12px;">Send</button>
+            </form>
+        </div>
+    </div>
+    <script>
+         // Sidebar section switching
+     const sectionMap = {
+         '/dashboard': 'dashboard-section',
+         '#upload': 'upload-section',
+         '#activity': 'activity-section',
+         '#diet': 'diet-section',
+         '#milestones': 'milestones-section',
+         '#wellness': 'wellness-section',
+         '#messages': 'messages-section',
+         '#profile': 'profile-section'
+     };
+     const sidebarLinks = document.querySelectorAll('.sidebar ul li a');
+     const sections = [
+         'dashboard-section', 'upload-section', 'activity-section',
+         'diet-section', 'milestones-section', 'wellness-section', 'messages-section', 'profile-section'
+     ];
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (this.getAttribute('href').startsWith('#')) {
+                e.preventDefault();
+                // Hide all sections
+                sections.forEach(id => {
+                    document.getElementById(id).style.display = 'none';
+                });
+                // Remove active from all links
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                // Show selected section
+                const sectionId = sectionMap[this.getAttribute('href')];
+                if (sectionId) {
+                    document.getElementById(sectionId).style.display = '';
+                }
+                // Set active link
+                this.classList.add('active');
+            }
+        });
+    });
+         // Show dashboard by default
+     document.getElementById('dashboard-section').style.display = '';
+     
+     // Message functions
+     function showMessagesTab(tab) {
+         // Hide all tab contents
+         document.querySelectorAll('.messages-tab-content').forEach(content => {
+             content.style.display = 'none';
+         });
+         
+         // Remove active class from all tabs
+         document.querySelectorAll('.tab-btn').forEach(btn => {
+             btn.classList.remove('active');
+         });
+         
+         // Show selected tab content
+         if (tab === 'received') {
+             document.getElementById('received-messages').style.display = 'block';
+             document.querySelector('.tab-btn:first-child').classList.add('active');
+             loadReceivedMessages();
+         } else {
+             document.getElementById('sent-messages').style.display = 'block';
+             document.querySelector('.tab-btn:last-child').classList.add('active');
+             loadSentMessages();
+         }
+     }
+     
+     async function loadReceivedMessages() {
+         try {
+             const response = await fetch('/messages');
+             const data = await response.json();
+             
+             const container = document.getElementById('received-messages-list');
+             if (data.received && data.received.length > 0) {
+                 container.innerHTML = data.received.map(msg => `
+                     <div class="message-item ${msg.is_read ? 'read' : 'unread'}" onclick="markMessageRead(${msg.id})">
+                         <div class="message-header">
+                             <span class="message-sender">${msg.sender}</span>
+                             <span class="message-time">${msg.timestamp}</span>
+                             ${msg.is_read ? '' : '<span class="unread-indicator">●</span>'}
+                         </div>
+                         <div class="message-content">${msg.content}</div>
+                         ${msg.related_report ? `<div class="message-context">Related to: ${msg.related_report}</div>` : ''}
+                     </div>
+                 `).join('');
+             } else {
+                 container.innerHTML = '<div class="no-messages">No messages received yet.</div>';
+             }
+         } catch (error) {
+             console.error('Error loading messages:', error);
+             document.getElementById('received-messages-list').innerHTML = '<div class="error-message">Error loading messages.</div>';
+         }
+     }
+     
+     async function loadSentMessages() {
+         try {
+             const response = await fetch('/messages');
+             const data = await response.json();
+             
+             const container = document.getElementById('sent-messages-list');
+             if (data.sent && data.sent.length > 0) {
+                 container.innerHTML = data.sent.map(msg => `
+                     <div class="message-item sent">
+                         <div class="message-header">
+                             <span class="message-receiver">To: ${msg.receiver}</span>
+                             <span class="message-time">${msg.timestamp}</span>
+                         </div>
+                         <div class="message-content">${msg.content}</div>
+                         ${msg.related_report ? `<div class="message-context">Related to: ${msg.related_report}</div>` : ''}
+                     </div>
+                 `).join('');
+             } else {
+                 container.innerHTML = '<div class="no-messages">No messages sent yet.</div>';
+             }
+         } catch (error) {
+             console.error('Error loading messages:', error);
+             document.getElementById('sent-messages-list').innerHTML = '<div class="error-message">Error loading messages.</div>';
+         }
+     }
+     
+     async function markMessageRead(messageId) {
+         try {
+             const response = await fetch(`/mark-message-read/${messageId}`, { method: 'POST' });
+             const data = await response.json();
+             
+             if (data.success) {
+                 // Update UI to show message as read
+                 const messageElement = document.querySelector(`[onclick="markMessageRead(${messageId})"]`);
+                 if (messageElement) {
+                     messageElement.classList.remove('unread');
+                     messageElement.classList.add('read');
+                     messageElement.querySelector('.unread-indicator')?.remove();
+                 }
+                 
+                 // Update unread count in sidebar
+                 const messageBadge = document.querySelector('.message-badge');
+                 if (messageBadge) {
+                     const currentCount = parseInt(messageBadge.textContent);
+                     if (currentCount > 1) {
+                         messageBadge.textContent = currentCount - 1;
+                     } else {
+                         messageBadge.remove();
+                     }
+                 }
+             }
+         } catch (error) {
+             console.error('Error marking message as read:', error);
+         }
+     }
+     </script>
+    <script>
+    // Chatbot widget logic
+    const chatbotHeader = document.getElementById('chatbot-header');
+    const chatbotBody = document.getElementById('chatbot-body');
+    const chatForm = document.getElementById('chatbot-form');
+    const chatInput = document.getElementById('chatbot-input');
+    const chatHistoryDiv = document.getElementById('chat-history');
+    
+    // Add loading state
+    let isLoading = false;
+    
+    chatbotHeader.onclick = function() {
+        chatbotBody.style.display = chatbotBody.style.display === 'none' ? '' : 'none';
+        if (chatbotBody.style.display !== 'none') {
+            fetchChatHistory();
+        }
+    };
+    
+    function renderChatHistory(history) {
+        chatHistoryDiv.innerHTML = '';
+        if (history && history.length > 0) {
+            history.forEach(item => {
+                const messageDiv = document.createElement('div');
+                messageDiv.style.cssText = 'margin-bottom: 12px; padding: 8px; border-radius: 8px;';
+                
+                // User message
+                const userDiv = document.createElement('div');
+                userDiv.style.cssText = 'margin-bottom: 6px; text-align: right;';
+                userDiv.innerHTML = `<span style="background: #40916c; color: white; padding: 6px 10px; border-radius: 15px; font-size: 0.9rem; display: inline-block; max-width: 80%;">${item.message}</span>`;
+                messageDiv.appendChild(userDiv);
+                
+                // Bot reply
+                const botDiv = document.createElement('div');
+                botDiv.style.cssText = 'text-align: left;';
+                botDiv.innerHTML = `<span style="background: #f8f9fa; color: #333; padding: 6px 10px; border-radius: 15px; font-size: 0.9rem; display: inline-block; max-width: 80%; border: 1px solid #e9ecef;">${item.reply}</span>`;
+                messageDiv.appendChild(botDiv);
+                
+                // Timestamp if available
+                if (item.timestamp) {
+                    const timeDiv = document.createElement('div');
+                    timeDiv.style.cssText = 'text-align: center; font-size: 0.75rem; color: #6c757d; margin-top: 4px;';
+                    timeDiv.textContent = item.timestamp;
+                    messageDiv.appendChild(timeDiv);
+                }
+                
+                chatHistoryDiv.appendChild(messageDiv);
+            });
+        } else {
+            chatHistoryDiv.innerHTML = '<div style="text-align: center; color: #6c757d; font-style: italic; padding: 20px;">No chat history yet. Start a conversation!</div>';
+        }
+        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+    }
+    
+    async function fetchChatHistory() {
+        try {
+            const res = await fetch('/chatbot/history');
+            const data = await res.json();
+            if (data.history) {
+                renderChatHistory(data.history);
+            } else if (data.error) {
+                chatHistoryDiv.innerHTML = `<div style="color: #dc3545; text-align: center; padding: 20px;">${data.error}</div>`;
+            }
+        } catch (error) {
+            console.error('Error fetching chat history:', error);
+            chatHistoryDiv.innerHTML = '<div style="color: #dc3545; text-align: center; padding: 20px;">Failed to load chat history</div>';
+        }
+    }
+    
+    chatForm.onsubmit = async function(e) {
+        e.preventDefault();
+        const msg = chatInput.value.trim();
+        if (!msg || isLoading) return;
+        
+        // Set loading state
+        isLoading = true;
+        chatInput.value = '';
+        chatInput.disabled = true;
+        
+        // Add user message to UI immediately
+        const tempUserDiv = document.createElement('div');
+        tempUserDiv.style.cssText = 'margin-bottom: 12px; padding: 8px; border-radius: 8px; text-align: right;';
+        tempUserDiv.innerHTML = `<span style="background: #40916c; color: white; padding: 6px 10px; border-radius: 15px; font-size: 0.9rem; display: inline-block; max-width: 80%;">${msg}</span>`;
+        chatHistoryDiv.appendChild(tempUserDiv);
+        
+        // Add loading indicator for bot response
+        const loadingDiv = document.createElement('div');
+        loadingDiv.style.cssText = 'text-align: left; margin-bottom: 12px;';
+        loadingDiv.innerHTML = '<span style="background: #f8f9fa; color: #333; padding: 6px 10px; border-radius: 15px; font-size: 0.9rem; display: inline-block; border: 1px solid #e9ecef;"><i class="fa fa-spinner fa-spin"></i> Thinking...</span>';
+        chatHistoryDiv.appendChild(loadingDiv);
+        
+        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        
+        try {
+            const res = await fetch('/chatbot', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: msg})
+            });
+            
+            console.log('Response status:', res.status);
+            const data = await res.json();
+            console.log('Response data:', data);
+            
+            // Remove loading indicator
+            loadingDiv.remove();
+            
+            if (data.history && Array.isArray(data.history)) {
+                renderChatHistory(data.history);
+            } else if (data.error) {
+                // Show error message
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'text-align: left; margin-bottom: 12px;';
+                errorDiv.innerHTML = `<span style="background: #f8d7da; color: #721c24; padding: 6px 10px; border-radius: 15px; font-size: 0.9rem; display: inline-block; border: 1px solid #f5c6cb;">Error: ${data.error}</span>`;
+                chatHistoryDiv.appendChild(errorDiv);
+                chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+            } else {
+                // Show generic error if no history or error message
+                console.error('Unexpected response format:', data);
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'text-align: left; margin-bottom: 12px;';
+                errorDiv.innerHTML = '<span style="background: #f8d7da; color: #721c24; padding: 6px 10px; border-radius: 15px; font-size: 0.9rem; display: inline-block; border: 1px solid #f5c6cb;">Error: Unexpected response format</span>';
+                chatHistoryDiv.appendChild(errorDiv);
+                chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            // Remove loading indicator
+            loadingDiv.remove();
+            
+            // Show error message
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'text-align: left; margin-bottom: 12px;';
+            errorDiv.innerHTML = '<span style="background: #f8d7da; color: #721c24; padding: 6px 10px; border-radius: 15px; font-size: 0.9rem; display: inline-block; border: 1px solid #f5c6cb;">Error: Failed to send message</span>';
+            chatHistoryDiv.appendChild(errorDiv);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        } finally {
+            // Reset loading state
+            isLoading = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+        }
+    };
+    
+    // Add keyboard shortcuts
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+    
+    // Auto-resize input on focus
+    chatInput.addEventListener('focus', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+    });
+    </script>
+    <script>
+function showUploadSection() {
+    // Find the sidebar link for Upload and trigger click
+    const uploadLink = Array.from(document.querySelectorAll('.sidebar a')).find(a => a.getAttribute('href') === '#upload');
+    if (uploadLink) uploadLink.click();
+}
+</script>
+</body>
+</html>
