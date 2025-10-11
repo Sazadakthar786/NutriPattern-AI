@@ -11,6 +11,7 @@ import easyocr
 import pdfplumber
 import json
 import pandas as pd
+from supabase_config import get_supabase_client
 
 # Remove unused LLM imports and keys
 # import openai
@@ -42,6 +43,68 @@ with app.app_context():
     db.create_all()
 
 # Database initialization complete
+
+# Supabase integration
+class SupabaseService:
+    def __init__(self):
+        self.supabase = get_supabase_client()
+    
+    def create_user(self, user_data):
+        """Create a new user in Supabase"""
+        try:
+            result = self.supabase.table('users').insert(user_data).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            print(f"Supabase user creation error: {e}")
+            return None
+    
+    def get_user(self, user_id):
+        """Get user by ID from Supabase"""
+        try:
+            result = self.supabase.table('users').select('*').eq('id', user_id).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            print(f"Supabase user retrieval error: {e}")
+            return None
+    
+    def create_health_report(self, report_data):
+        """Create a new health report in Supabase"""
+        try:
+            result = self.supabase.table('health_reports').insert(report_data).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            print(f"Supabase health report creation error: {e}")
+            return None
+    
+    def get_user_reports(self, user_id):
+        """Get all health reports for a user from Supabase"""
+        try:
+            result = self.supabase.table('health_reports').select('*').eq('user_id', user_id).execute()
+            return result.data if result.data else []
+        except Exception as e:
+            print(f"Supabase health reports retrieval error: {e}")
+            return []
+    
+    def create_message(self, message_data):
+        """Create a new message in Supabase"""
+        try:
+            result = self.supabase.table('messages').insert(message_data).execute()
+            return result.data[0] if result.data else None
+        except Exception as e:
+            print(f"Supabase message creation error: {e}")
+            return None
+    
+    def get_user_messages(self, user_id):
+        """Get all messages for a user from Supabase"""
+        try:
+            result = self.supabase.table('messages').select('*').eq('recipient_id', user_id).execute()
+            return result.data if result.data else []
+        except Exception as e:
+            print(f"Supabase messages retrieval error: {e}")
+            return []
+
+# Initialize Supabase service
+supabase_service = SupabaseService()
 
 # Custom Jinja2 filters
 @app.template_filter('from_json')
@@ -273,6 +336,25 @@ def register():
         user = User(username=username, password=password, patient_id=patient_id, age=age, gender=gender, height=height, weight=weight, role=role)
         db.session.add(user)
         db.session.commit()
+        
+        # Also save to Supabase
+        user_data = {
+            'id': user.id,
+            'username': username,
+            'patient_id': patient_id,
+            'age': int(age),
+            'gender': gender,
+            'height': float(height),
+            'weight': float(weight),
+            'role': role,
+            'created_at': datetime.now().isoformat()
+        }
+        supabase_result = supabase_service.create_user(user_data)
+        if supabase_result:
+            print(f"✅ User {username} also saved to Supabase")
+        else:
+            print(f"⚠️ Failed to save user {username} to Supabase")
+        
         flash('Registration successful! Please log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')

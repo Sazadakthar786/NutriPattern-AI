@@ -13,3 +13,4 @@ python-dotenv==1.0.0
 gunicorn==21.2.0
 psycopg2-binary==2.9.9
 pdf2image==1.17.0
+supabase==0.7.1
