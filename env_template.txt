@@ -1,0 +1,13 @@
+# Environment Variables Template for NutriPattern AI
+# Copy this file to .env and fill in your actual values
+
+# Flask Configuration
+SECRET_KEY=your-secret-key-here
+DATABASE_URL=sqlite:///healthapp.db
+
+# Supabase Configuration
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key-here
+
+# OpenRouter API (for chatbot)
+OPENROUTER_API_KEY=your-openrouter-api-key-here
