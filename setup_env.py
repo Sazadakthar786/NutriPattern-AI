@@ -7,9 +7,15 @@ This script helps you create a secure .env file with your credentials.
 import os
 
 def create_env_file():
+<<<<<<< HEAD
     """Create .env file for NutriPattern AI"""
     
     print("🔐 ENVIRONMENT SETUP")
+=======
+    """Create .env file with Supabase credentials"""
+    
+    print("🔐 SUPABASE CREDENTIALS SETUP")
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     print("=" * 50)
     
     # Check if .env already exists
@@ -20,6 +26,7 @@ def create_env_file():
             print("❌ Setup cancelled.")
             return
     
+<<<<<<< HEAD
     print("\n📝 Setting up environment variables...")
     
     # Get credentials
@@ -30,6 +37,31 @@ def create_env_file():
         print(f"✅ Generated random secret key")
     
     openrouter_key = input("🤖 OpenRouter API Key (optional, for chatbot features): ").strip()
+=======
+    print("\n📝 Please provide your Supabase credentials:")
+    print("(You can find these in your Supabase dashboard)")
+    
+    # Get Supabase URL
+    supabase_url = input("\n🔗 Supabase URL: ").strip()
+    if not supabase_url:
+        supabase_url = "https://qvswoxihuzbjexnuaxdl.supabase.co"
+        print(f"Using default URL: {supabase_url}")
+    
+    # Get Supabase Anon Key
+    supabase_key = input("🔑 Supabase Anon Key: ").strip()
+    if not supabase_key:
+        supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2c3dveGlodXpiamV4bnVheGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMjA3NTUsImV4cCI6MjA3NTY5Njc1NX0.8WRFFX6LkqA2h8ZQ7Z_aF_wRa4YTXaed187tkwCUJZM"
+        print("Using default key")
+    
+    # Get other credentials
+    secret_key = input("🔐 Flask Secret Key (press Enter for random): ").strip()
+    if not secret_key:
+        import secrets
+        secret_key = secrets.token_hex(32)
+        print(f"Generated random secret key: {secret_key}")
+    
+    openrouter_key = input("🤖 OpenRouter API Key (optional): ").strip()
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     
     # Create .env content
     env_content = f"""# Environment Variables for NutriPattern AI
@@ -39,7 +71,15 @@ def create_env_file():
 SECRET_KEY={secret_key}
 DATABASE_URL=sqlite:///healthapp.db
 
+<<<<<<< HEAD
 # OpenRouter API (for AI chatbot features)
+=======
+# Supabase Configuration
+SUPABASE_URL={supabase_url}
+SUPABASE_ANON_KEY={supabase_key}
+
+# OpenRouter API (for chatbot)
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 OPENROUTER_API_KEY={openrouter_key}
 """
     
@@ -49,10 +89,23 @@ OPENROUTER_API_KEY={openrouter_key}
             f.write(env_content)
         
         print("\n✅ .env file created successfully!")
+<<<<<<< HEAD
         print("🔒 Your credentials are secure and won't be committed to Git")
         print("\n📋 Next steps:")
         print("1. Run: ./run.sh (or python app.py)")
         print("2. Open http://127.0.0.1:5000 in your browser")
+=======
+        print("🔒 Your credentials are now secure and won't be committed to Git")
+        
+        # Test the connection
+        print("\n🧪 Testing Supabase connection...")
+        try:
+            from supabase_config import get_supabase_client
+            supabase = get_supabase_client()
+            print("✅ Supabase connection successful!")
+        except Exception as e:
+            print(f"❌ Supabase connection failed: {e}")
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
             
     except Exception as e:
         print(f"❌ Failed to create .env file: {e}")

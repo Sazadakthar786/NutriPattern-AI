@@ -27,26 +27,35 @@
                  </a></li>
                  <!-- Doctor portal access removed - now separate login system -->
                  <li><a href="/logout" title="Logout"><i class="fa fa-sign-out-alt"></i> <span class="sidebar-label">Logout</span></a></li>
+<<<<<<< HEAD
                  <li><a href="#about" title="About Us"><i class="fa fa-info-circle"></i> <span class="sidebar-label">About Us</span></a></li>
+=======
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
             </ul>
         </aside>
         <main>
             <!-- Dashboard Section -->
             <section id="dashboard-section" class="dashboard-section active">
                 {% set present_keys = [] %}
+<<<<<<< HEAD
                 {% set has_extracted_values = False %}
                 {% for report in reports %}
                     {% if report.values_dict and report.values_dict|length > 0 %}
                         {% set has_extracted_values = True %}
                     {% endif %}
                 {% endfor %}
+=======
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                 {% for key, values in trend_data.items() %}
                     {% if values and values|sum > 0 %}
                         {% set _ = present_keys.append(key) %}
                     {% endif %}
                 {% endfor %}
                 {% set has_data = present_keys|length > 0 %}
+<<<<<<< HEAD
                 {% set has_reports = reports and reports|length > 0 %}
+=======
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                 <div class="dashboard-hero" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
                     <div class="hero-text">
                         <h1>Welcome, {{ user.username }}! <span style="font-size:1.5rem;">👋</span></h1>
@@ -79,6 +88,7 @@
                             </td>
                         </tr>
                         <tr id="details-{{ report.id }}" style="display:none; background:#f9f9f9;">
+<<<<<<< HEAD
                             <td colspan="3" style="padding: 20px;">
                                 <div style="margin-bottom: 15px;">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -133,6 +143,23 @@
                                     <small style="color: #666;">{{ report.comment_timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
                                     {% endif %}
                                 </div>
+=======
+                            <td colspan="3">
+                                <strong>Extracted Values:</strong>
+                                <ul>
+                                {% for k, v in report.values_dict.items() %}
+                                    <li>{{ k.replace('_',' ').title() }}: {{ v }}</li>
+                                {% endfor %}
+                                </ul>
+                                <strong>Conditions:</strong>
+                                <ul>
+                                {% for c in report.conds_list %}
+                                    <li>{{ c }}</li>
+                                {% endfor %}
+                                </ul>
+                                {% if report.doctor_comment %}
+                                <div style="margin-top:10px;"><strong>Doctor's Comment:</strong> {{ report.doctor_comment }}</div>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                                 {% endif %}
                             </td>
                         </tr>
@@ -153,11 +180,16 @@
                 <p>No reports uploaded yet.</p>
                 {% endif %}
                 {% if comparison and comparison|length > 0 %}
+<<<<<<< HEAD
                 <h3>{% if reports|length >= 2 %}Report Comparison (Latest vs Previous){% else %}Current Health Parameters{% endif %}</h3>
+=======
+                <h3>Report Comparison (Latest vs Previous)</h3>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                 <table>
                     <thead>
                         <tr>
                             <th>Parameter</th>
+<<<<<<< HEAD
                             {% if reports|length >= 2 %}
                             <th>Previous</th>
                             {% endif %}
@@ -165,11 +197,17 @@
                             {% if reports|length >= 2 %}
                             <th>Status</th>
                             {% endif %}
+=======
+                            <th>Previous</th>
+                            <th>Latest</th>
+                            <th>Status</th>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                         </tr>
                     </thead>
                     <tbody>
                         {% for key, comp in comparison.items() %}
                         <tr>
+<<<<<<< HEAD
                             <td><strong>{{ key.replace('_',' ').title() }}</strong></td>
                             {% if reports|length >= 2 %}
                             <td>{{ comp.previous if comp.previous is not none else 'N/A' }}</td>
@@ -182,12 +220,26 @@
                                 {% if comp.status == 'no_change' %}<span style="color:gray;">→ No Change</span>{% endif %}
                             </td>
                             {% endif %}
+=======
+                            <td>{{ key|capitalize }}</td>
+                            <td>{{ comp.previous }}</td>
+                            <td>{{ comp.latest }}</td>
+                            <td>
+                                {% if comp.status == 'improved' %}<span style="color:green;">Improved</span>{% endif %}
+                                {% if comp.status == 'worse' %}<span style="color:red;">Worse</span>{% endif %}
+                                {% if comp.status == 'no_change' %}<span style="color:gray;">No Change</span>{% endif %}
+                            </td>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
                 {% endif %}
+<<<<<<< HEAD
                 {% if not has_reports %}
+=======
+                {% if not has_data %}
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                 <div class="dashboard-empty-state">
                     <div class="empty-illustration">
                         <!-- Inline SVG from unDraw: https://undraw.co/illustrations -->
@@ -218,6 +270,7 @@
                 </div>
                 {% endif %}
                                  {% if has_data %}
+<<<<<<< HEAD
                  <h3>Health Analytics & Trends</h3>
                  <div class="analytics-summary-cards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
                      {% for key in present_keys %}
@@ -229,6 +282,15 @@
                              {% elif comparison.get(key, {}).get('status') == 'worse' %}<span style="color: #f44336;">⚠ Worse</span>
                              {% else %}<span style="color: #666;">→ Stable</span>{% endif %}
                          </div>
+=======
+                 <h3>Health Analytics</h3>
+                 <div class="analytics-summary-cards">
+                     {% for key in present_keys %}
+                     <div class="analytics-card analytics-{{ comparison.get(key, {}).get('status', 'no_change') }}">
+                         <div class="analytics-card-title">{{ key.replace('_',' ').title() }}</div>
+                         <div class="analytics-card-value">{{ comparison.get(key, {}).get('latest', trend_data.get(key, [0])[-1] if trend_data.get(key) else 0) }}</div>
+                         <div class="analytics-card-status">{% if comparison.get(key, {}).get('status') == 'improved' %}Improved{% elif comparison.get(key, {}).get('status') == 'worse' %}Worse{% else %}No Change{% endif %}</div>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                      </div>
                      {% endfor %}
                  </div>
@@ -238,6 +300,7 @@
                     <button onclick="setChartType('radar')">Radar</button>
                 </div>
                 <canvas id="trendChart" width="600" height="300"></canvas>
+<<<<<<< HEAD
                 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
                 <script>
                 const trendLabels = {{ trend_labels|tojson }};
@@ -341,10 +404,46 @@
                     }
                 }
                 
+=======
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <script>
+                const trendLabels = {{ trend_labels|tojson }};
+                const trendData = {{ trend_data|tojson }};
+                const presentKeys = Object.keys(trendData).filter(k => trendData[k].some(v => v !== 0));
+                const paramColors = ['#e76f51','#40916c','#577590','#f4a261','#b5838d','#43aa8b','#f9c74f','#277da1','#ff6f61','#8d99ae','#f3722c','#43bccd'];
+                let chartType = 'line';
+                let chart;
+                function renderChart(type) {
+                    if (chart) chart.destroy();
+                    const ctx = document.getElementById('trendChart').getContext('2d');
+                    chart = new Chart(ctx, {
+                        type: type,
+                        data: {
+                            labels: trendLabels,
+                            datasets: presentKeys.map((k,i) => ({
+                                label: k.replace('_',' ').toUpperCase(),
+                                data: trendData[k],
+                                borderColor: paramColors[i%paramColors.length],
+                                backgroundColor: paramColors[i%paramColors.length]+"33",
+                                fill: type==='radar',
+                                tension: 0.3
+                            }))
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: { display: true, text: 'Health Parameter Trends' }
+                            }
+                        }
+                    });
+                }
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                 function setChartType(type) {
                     chartType = type;
                     renderChart(type);
                 }
+<<<<<<< HEAD
                 
                 // Wait for DOM and Chart.js to be ready
                 if (document.readyState === 'loading') {
@@ -354,6 +453,11 @@
                 } else {
                     setTimeout(() => renderChart(chartType), 100);
                 }
+=======
+                document.addEventListener('DOMContentLoaded', function() {
+                    renderChart(chartType);
+                });
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                 </script>
                 {% endif %}
             </section>
@@ -368,6 +472,7 @@
                     </ul>
                   {% endif %}
                 {% endwith %}
+<<<<<<< HEAD
                 <div id="ocr-status-check" style="padding: 15px; margin-bottom: 20px; border-radius: 8px; background: #fff3cd; border-left: 4px solid #ffc107;">
                     <strong>📋 OCR Status:</strong> <span id="ocr-status-text">Checking...</span>
                     <small id="ocr-status-details" style="display: block; margin-top: 5px; color: #666;"></small>
@@ -378,11 +483,17 @@
                     <small style="display: block; margin-top: 5px; color: #666;">Supported formats: PDF, JPG, JPEG, PNG</small>
                     
                     <label for="ocr_language" style="margin-top: 15px;">Report Language:</label>
+=======
+                <form method="POST" action="/upload" enctype="multipart/form-data">
+                    <input type="file" name="report_file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <label for="ocr_language">Report Language:</label>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                     <select name="ocr_language" id="ocr_language" required>
                         <option value="eng">English</option>
                         <option value="hin">Hindi</option>
                         <option value="tel">Telugu</option>
                     </select>
+<<<<<<< HEAD
                     
                     <label style="margin-top: 15px; display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" name="shared_with_doctor"> Share with Doctor
@@ -424,6 +535,11 @@
                         document.getElementById('ocr-status-text').textContent = '⚠ Could not check OCR status';
                     });
                 </script>
+=======
+                    <label><input type="checkbox" name="shared_with_doctor"> Share with Doctor</label>
+                    <button type="submit">Upload</button>
+                </form>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
             </section>
             <section class="dashboard-section" id="activity-section" style="display:none;">
                 <h2>Activity Log</h2>
@@ -468,20 +584,29 @@
                  
                  {% if reports and reports|length > 0 %}
                  <div class="health-summary" style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #40916c;">
+<<<<<<< HEAD
                      <h3 style="color: #2d6a4f; margin-top: 0;">📊 Health Summary for Diet Planning</h3>
                      <p style="color: #666; margin-bottom: 15px; font-size: 0.95em;">This diet plan is personalized based on your latest medical report parameters.</p>
+=======
+                     <h3 style="color: #2d6a4f; margin-top: 0;">Health Summary for Diet Planning</h3>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                      <div class="health-params" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                          {% for report in reports %}
                              {% if report.values_dict %}
                                  {% for param, value in report.values_dict.items() %}
                                  <div class="param-card" style="background: white; padding: 12px; border-radius: 8px; border: 1px solid #e9ecef;">
                                      <strong style="color: #40916c;">{{ param.replace('_',' ').title() }}:</strong>
+<<<<<<< HEAD
                                      <span style="color: #666; font-weight: bold;">{{ value }}</span>
+=======
+                                     <span style="color: #666;">{{ value }}</span>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                                  </div>
                                  {% endfor %}
                              {% endif %}
                          {% endfor %}
                      </div>
+<<<<<<< HEAD
                      {% if reports[0].conds_list and reports[0].conds_list|length > 0 %}
                      <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
                          <strong style="color: #856404;">⚠ Detected Health Conditions:</strong>
@@ -492,6 +617,8 @@
                          </ul>
                      </div>
                      {% endif %}
+=======
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                  </div>
                  {% endif %}
                  
@@ -609,6 +736,7 @@
                     <div class="wellness-progress">
                         <svg width="120" height="120" viewBox="0 0 120 120">
                             <circle cx="60" cy="60" r="54" stroke="#e0e0e0" stroke-width="12" fill="none"/>
+<<<<<<< HEAD
                             <circle cx="60" cy="60" r="54" stroke="{% if wellness_score >= 80 %}#4caf50{% elif wellness_score >= 60 %}#ff9800{% else %}#f44336{% endif %}" stroke-width="12" fill="none" stroke-dasharray="339.292" stroke-dashoffset="{{ 339.292 - (wellness_score/100)*339.292 }}" stroke-linecap="round"/>
                             <text x="50%" y="54%" text-anchor="middle" fill="{% if wellness_score >= 80 %}#4caf50{% elif wellness_score >= 60 %}#ff9800{% else %}#f44336{% endif %}" font-size="2.1rem" font-weight="bold" dy=".3em">{{ wellness_score }}</text>
                         </svg>
@@ -638,6 +766,15 @@
                             </ul>
                         </div>
                         {% endif %}
+=======
+                            <circle cx="60" cy="60" r="54" stroke="#40916c" stroke-width="12" fill="none" stroke-dasharray="339.292" stroke-dashoffset="{{ 339.292 - (wellness_score/100)*339.292 }}" stroke-linecap="round"/>
+                            <text x="50%" y="54%" text-anchor="middle" fill="#40916c" font-size="2.1rem" font-weight="bold" dy=".3em">{{ wellness_score }}</text>
+                        </svg>
+                        <div class="wellness-label">Score / 100</div>
+                    </div>
+                    <div class="wellness-motivation">
+                        <blockquote class="wellness-quote">“Your health is your wealth. Every small step counts!”</blockquote>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                         <div class="wellness-tips-grid">
                             <div class="wellness-tip-card"><span>💧</span> Drink water</div>
                             <div class="wellness-tip-card"><span>🚶‍♂️</span> Move every hour</div>
@@ -646,9 +783,13 @@
                             <div class="wellness-tip-card"><span>🧘‍♂️</span> Breathe/meditate</div>
                             <div class="wellness-tip-card"><span>🎉</span> Celebrate wins</div>
                         </div>
+<<<<<<< HEAD
                         <div class="wellness-random-tip" style="background: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
                             <span style="font-size:1.3rem;">💡</span> <strong>Personalized Tip:</strong> {{ wellness_tip }}
                         </div>
+=======
+                        <div class="wellness-random-tip"><span style="font-size:1.3rem;">💡</span> {{ wellness_tip }}</div>
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                     </div>
                 </div>
             </section>
@@ -721,6 +862,7 @@
                     </div>
                 </div>
             </section>
+<<<<<<< HEAD
             <section class="dashboard-section" id="about-section" style="display:none;">
                 <h2><i class="fa fa-info-circle" style="color:#40916c;"></i> About NutriPattern AI</h2>
                 
@@ -933,6 +1075,8 @@
                     </div>
                 </div>
             </section>
+=======
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
         </main>
     </div>
     <footer>
@@ -960,13 +1104,21 @@
          '#milestones': 'milestones-section',
          '#wellness': 'wellness-section',
          '#messages': 'messages-section',
+<<<<<<< HEAD
          '#profile': 'profile-section',
          '#about': 'about-section'
+=======
+         '#profile': 'profile-section'
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
      };
      const sidebarLinks = document.querySelectorAll('.sidebar ul li a');
      const sections = [
          'dashboard-section', 'upload-section', 'activity-section',
+<<<<<<< HEAD
          'diet-section', 'milestones-section', 'wellness-section', 'messages-section', 'profile-section', 'about-section'
+=======
+         'diet-section', 'milestones-section', 'wellness-section', 'messages-section', 'profile-section'
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
      ];
     sidebarLinks.forEach(link => {
         link.addEventListener('click', function(e) {
@@ -1261,6 +1413,7 @@ function showUploadSection() {
     const uploadLink = Array.from(document.querySelectorAll('.sidebar a')).find(a => a.getAttribute('href') === '#upload');
     if (uploadLink) uploadLink.click();
 }
+<<<<<<< HEAD
 
 async function testExtraction(reportId) {
     const resultDiv = document.getElementById(`extraction-result-${reportId}`);
@@ -1313,6 +1466,8 @@ async function testExtraction(reportId) {
         resultDiv.innerHTML = `<div style="padding: 10px; background: #ffebee; border-left: 4px solid #f44336; border-radius: 4px; color: #c62828;">❌ Error: ${error.message}</div>`;
     }
 }
+=======
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 </script>
 </body>
 </html>

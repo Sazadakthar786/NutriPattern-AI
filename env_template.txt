@@ -5,5 +5,13 @@
 SECRET_KEY=your-secret-key-here
 DATABASE_URL=sqlite:///healthapp.db
 
+<<<<<<< HEAD
 # OpenRouter API (for AI chatbot features - optional)
+=======
+# Supabase Configuration
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key-here
+
+# OpenRouter API (for chatbot)
+>>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 OPENROUTER_API_KEY=your-openrouter-api-key-here
