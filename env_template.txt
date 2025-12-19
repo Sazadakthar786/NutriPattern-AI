@@ -1,0 +1,9 @@
+# Environment Variables Template for NutriPattern AI
+# Copy this file to .env and fill in your actual values
+
+# Flask Configuration
+SECRET_KEY=your-secret-key-here
+DATABASE_URL=sqlite:///healthapp.db
+
+# OpenRouter API (for AI chatbot features - optional)
+OPENROUTER_API_KEY=your-openrouter-api-key-here

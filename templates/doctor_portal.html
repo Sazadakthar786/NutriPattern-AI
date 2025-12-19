@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Doctor Portal - NutriPattern AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="doctor-portal-container">
+        <header class="doctor-header">
+            <div class="header-content">
+                <h1><i class="fa fa-stethoscope"></i> Doctor Portal</h1>
+                <p>Access patient records and provide medical guidance</p>
+                <div class="user-info">
+                    <span>Welcome, Dr. {{ current_user.username }}</span>
+                    <a href="/logout" class="logout-btn"><i class="fa fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </header>
+        
+        <main class="doctor-main">
+            <div class="patient-search-section">
+                <div class="search-card">
+                    <div class="search-header">
+                        <h2><i class="fa fa-search"></i> Find Patient</h2>
+                        <p>Enter the patient's unique ID to access their medical records</p>
+                    </div>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            <ul class="flashes">
+                                {% for category, message in messages %}
+                                    <li class="flash-{{ category }}">{{ message }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="/doctor-portal" class="patient-search-form">
+                        <div class="form-group">
+                            <label for="patient_id">Patient ID</label>
+                            <div class="input-with-icon">
+                                <i class="fa fa-id-card"></i>
+                                <input type="text" id="patient_id" name="patient_id" 
+                                       placeholder="Enter 8-character patient ID (e.g., AB12CD34)" 
+                                       pattern="[A-Z0-9]{8}" maxlength="8" required>
+                            </div>
+                            <small class="form-help">Patient ID is an 8-character alphanumeric code</small>
+                        </div>
+                        <button type="submit" class="search-btn">
+                            <i class="fa fa-search"></i> Find Patient
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="recent-patients-section">
+                <h3><i class="fa fa-history"></i> Recent Patients</h3>
+                <div class="recent-patients-grid">
+                    <div class="info-card">
+                        <i class="fa fa-info-circle"></i>
+                        <h4>How to Use</h4>
+                        <p>1. Ask your patient for their unique Patient ID</p>
+                        <p>2. Enter the ID in the search box above</p>
+                        <p>3. View complete medical history and reports</p>
+                        <p>4. Add medical comments and suggestions</p>
+                    </div>
+                    
+                    <div class="info-card">
+                        <i class="fa fa-shield-alt"></i>
+                        <h4>Security & Privacy</h4>
+                        <p>• Patient IDs are unique and secure</p>
+                        <p>• Only authorized doctors can access records</p>
+                        <p>• All access is logged and monitored</p>
+                        <p>• HIPAA compliant data handling</p>
+                    </div>
+                    
+                    <div class="info-card">
+                        <i class="fa fa-chart-line"></i>
+                        <h4>Available Data</h4>
+                        <p>• Medical test results and parameters</p>
+                        <p>• Health condition analysis</p>
+                        <p>• Diet plans and recommendations</p>
+                        <p>• Activity and wellness tracking</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

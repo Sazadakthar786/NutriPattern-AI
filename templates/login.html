@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - NutriPattern AI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1><i class="fa fa-heartbeat"></i> NutriPattern AI</h1>
+            <p>Your Health, Personalized with AI</p>
+        </div>
+        
+        <div class="login-options">
+            <div class="option-card patient-login">
+                <div class="option-icon">
+                    <i class="fa fa-user"></i>
+                </div>
+                <h2>Patient Login</h2>
+                <p>Access your personalized health dashboard, upload reports, and track your progress.</p>
+                <button class="option-btn" onclick="showLoginForm('patient')">Login as Patient</button>
+            </div>
+            
+            <div class="option-card doctor-login">
+                <div class="option-icon">
+                    <i class="fa fa-stethoscope"></i>
+                </div>
+                <h2>Doctor Portal</h2>
+                <p>Access patient records, review medical reports, and provide expert guidance.</p>
+                <button class="option-btn" onclick="showLoginForm('doctor')">Access Doctor Portal</button>
+            </div>
+        </div>
+        
+        <!-- Patient Login Form -->
+        <div id="patient-login-form" class="login-form" style="display: none;">
+            <div class="form-header">
+                <h2><i class="fa fa-user"></i> Patient Login</h2>
+                <button class="back-btn" onclick="hideLoginForm()"><i class="fa fa-arrow-left"></i> Back</button>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flashes">
+                        {% for category, message in messages %}
+                            <li class="flash-{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="login-btn">Login</button>
+            </form>
+            
+            <div class="form-footer">
+                <p>Don't have an account? <a href="/register">Register here</a></p>
+            </div>
+        </div>
+        
+        <!-- Doctor Login Form -->
+        <div id="doctor-login-form" class="login-form" style="display: none;">
+            <div class="form-header">
+                <h2><i class="fa fa-stethoscope"></i> Doctor Portal Access</h2>
+                <button class="back-btn" onclick="hideLoginForm()"><i class="fa fa-arrow-left"></i> Back</button>
+            </div>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flashes">
+                        {% for category, message in messages %}
+                            <li class="flash-{{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="doctor_username">Username</label>
+                    <input type="text" id="doctor_username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="doctor_password">Password</label>
+                    <input type="password" id="doctor_password" name="password" required>
+                </div>
+                <button type="submit" class="login-btn">Access Doctor Portal</button>
+            </form>
+            
+            <div class="form-footer">
+                <p>Need a doctor account? <a href="/register">Register here</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showLoginForm(type) {
+            // Hide all forms first
+            document.getElementById('patient-login-form').style.display = 'none';
+            document.getElementById('doctor-login-form').style.display = 'none';
+            
+            // Show the selected form
+            if (type === 'patient') {
+                document.getElementById('patient-login-form').style.display = 'block';
+            } else if (type === 'doctor') {
+                document.getElementById('doctor-login-form').style.display = 'block';
+            }
+        }
+        
+        function hideLoginForm() {
+            document.getElementById('patient-login-form').style.display = 'none';
+            document.getElementById('doctor-login-form').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
