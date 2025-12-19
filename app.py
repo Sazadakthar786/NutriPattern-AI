@@ -6,7 +6,6 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 import random
-<<<<<<< HEAD
 import pdfplumber
 
 # Try to import pytesseract and easyocr, make them optional
@@ -36,14 +35,6 @@ except ImportError:
     EASYOCR_AVAILABLE = False
 import json
 import pandas as pd
-=======
-import pytesseract
-import easyocr
-import pdfplumber
-import json
-import pandas as pd
-from supabase_config import get_supabase_client
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 
 # Remove unused LLM imports and keys
 # import openai
@@ -76,71 +67,6 @@ with app.app_context():
 
 # Database initialization complete
 
-<<<<<<< HEAD
-=======
-# Supabase integration
-class SupabaseService:
-    def __init__(self):
-        self.supabase = get_supabase_client()
-    
-    def create_user(self, user_data):
-        """Create a new user in Supabase"""
-        try:
-            result = self.supabase.table('users').insert(user_data).execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            print(f"Supabase user creation error: {e}")
-            return None
-    
-    def get_user(self, user_id):
-        """Get user by ID from Supabase"""
-        try:
-            result = self.supabase.table('users').select('*').eq('id', user_id).execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            print(f"Supabase user retrieval error: {e}")
-            return None
-    
-    def create_health_report(self, report_data):
-        """Create a new health report in Supabase"""
-        try:
-            result = self.supabase.table('health_reports').insert(report_data).execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            print(f"Supabase health report creation error: {e}")
-            return None
-    
-    def get_user_reports(self, user_id):
-        """Get all health reports for a user from Supabase"""
-        try:
-            result = self.supabase.table('health_reports').select('*').eq('user_id', user_id).execute()
-            return result.data if result.data else []
-        except Exception as e:
-            print(f"Supabase health reports retrieval error: {e}")
-            return []
-    
-    def create_message(self, message_data):
-        """Create a new message in Supabase"""
-        try:
-            result = self.supabase.table('messages').insert(message_data).execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            print(f"Supabase message creation error: {e}")
-            return None
-    
-    def get_user_messages(self, user_id):
-        """Get all messages for a user from Supabase"""
-        try:
-            result = self.supabase.table('messages').select('*').eq('recipient_id', user_id).execute()
-            return result.data if result.data else []
-        except Exception as e:
-            print(f"Supabase messages retrieval error: {e}")
-            return []
-
-# Initialize Supabase service
-supabase_service = SupabaseService()
-
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 # Custom Jinja2 filters
 @app.template_filter('from_json')
 def from_json_filter(value):
@@ -161,7 +87,6 @@ import requests
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-<<<<<<< HEAD
 def extract_text_with_tesseract(filepath, lang='eng'):
     """Extract text using tesseract command line (works even if pytesseract import fails)"""
     try:
@@ -298,36 +223,12 @@ def extract_text_from_file(filepath, lang='eng'):
         traceback.print_exc()
         text = ""
     
-=======
-def extract_text_from_file(filepath, lang='eng'):
-    ext = os.path.splitext(filepath)[1].lower()
-    text = ''
-    if ext == '.pdf':
-        with pdfplumber.open(filepath) as pdf:
-            for page in pdf.pages:
-                text += page.extract_text() or ''
-        if not text.strip():
-            # Fallback to OCR for scanned PDFs
-            import cv2
-            from pdf2image import convert_from_path
-            images = convert_from_path(filepath)
-            for img in images:
-                text += pytesseract.image_to_string(img, lang=lang)
-    elif ext in ['.jpg', '.jpeg', '.png']:
-        try:
-            reader = easyocr.Reader([lang])
-            result = reader.readtext(filepath, detail=0)
-            text = '\n'.join(result)
-        except Exception:
-            text = pytesseract.image_to_string(filepath, lang=lang)
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     return text
 
 def parse_medical_values(text):
     import re
     import pandas as pd
     print('--- Extracted Text Start ---')
-<<<<<<< HEAD
     print(text[:500] if len(text) > 500 else text)  # Print first 500 chars to avoid too much output
     print('--- Extracted Text End ---')
     values = {}
@@ -350,25 +251,10 @@ def parse_medical_values(text):
         'WBC Count': ['WBC Count', 'WBC', 'White Blood Cell'],
         'Platelet Count': ['Platelet Count', 'Platelets', 'PLT'],
         'Hematocrit (HCT)': ['Hematocrit', 'HCT', 'Hct'],
-=======
-    print(text)
-    print('--- Extracted Text End ---')
-    values = {}
-    # Load all test parameters from CSV
-    param_df = pd.read_csv('medical_test_parameters.csv')
-    # Add common abbreviations for matching
-    abbrev_map = {
-        'Hemoglobin (Hb)': ['Hemoglobin', 'Hb'],
-        'RBC Count': ['RBC Count', 'RBC'],
-        'WBC Count': ['WBC Count', 'WBC'],
-        'Platelet Count': ['Platelet Count', 'Platelets'],
-        'Hematocrit (HCT)': ['Hematocrit', 'HCT'],
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
         'MCV': ['MCV'],
         'MCH': ['MCH'],
         'MCHC': ['MCHC'],
         'RDW': ['RDW'],
-<<<<<<< HEAD
         'Neutrophils (%)': ['Neutrophils', 'Neutrophil'],
         'Lymphocytes (%)': ['Lymphocytes', 'Lymphocyte'],
         'Monocytes (%)': ['Monocytes', 'Monocyte'],
@@ -799,75 +685,6 @@ def calculate_wellness_score(reports, user_gender=None):
     
     return wellness_score
 
-=======
-        'Neutrophils (%)': ['Neutrophils'],
-        'Lymphocytes (%)': ['Lymphocytes'],
-        'Monocytes (%)': ['Monocytes'],
-        'Eosinophils (%)': ['Eosinophils'],
-        'Basophils (%)': ['Basophils'],
-        'SGOT / AST': ['SGOT', 'AST'],
-        'SGPT / ALT': ['SGPT', 'ALT'],
-        'ALP': ['ALP'],
-        'Total Bilirubin': ['Total Bilirubin', 'Bilirubin'],
-        'Direct Bilirubin': ['Direct Bilirubin'],
-        'Albumin': ['Albumin'],
-        'Globulin': ['Globulin'],
-        'A/G Ratio': ['A/G Ratio'],
-        'Creatinine': ['Creatinine'],
-        'Urea / BUN': ['Urea', 'BUN'],
-        'Uric Acid': ['Uric Acid'],
-        'Sodium (Na+)': ['Sodium', 'Na+'],
-        'Potassium (K+)': ['Potassium', 'K+'],
-        'Chloride (Cl-)': ['Chloride', 'Cl-'],
-        'Fasting Blood Sugar (FBS)': ['Fasting Blood Sugar', 'FBS'],
-        'Postprandial Blood Sugar (PPBS)': ['Postprandial Blood Sugar', 'PPBS'],
-        'HbA1c': ['HbA1c'],
-        'Random Blood Sugar (RBS)': ['Random Blood Sugar', 'RBS'],
-        'Insulin (Fasting)': ['Insulin'],
-        'Total Cholesterol': ['Total Cholesterol', 'Cholesterol'],
-        'HDL': ['HDL'],
-        'LDL': ['LDL'],
-        'VLDL': ['VLDL'],
-        'Triglycerides': ['Triglycerides'],
-        'Cholesterol/HDL Ratio': ['Cholesterol/HDL Ratio'],
-        'Vitamin D (25-OH)': ['Vitamin D', '25-OH'],
-        'Vitamin B12': ['Vitamin B12', 'B12'],
-        'Calcium': ['Calcium'],
-        'Iron': ['Iron'],
-        'Ferritin': ['Ferritin'],
-        'TIBC': ['TIBC'],
-        'Magnesium': ['Magnesium'],
-        'Phosphorus': ['Phosphorus'],
-        'TSH': ['TSH'],
-        'T3': ['T3'],
-        'T4': ['T4'],
-        'Free T3': ['Free T3'],
-        'Free T4': ['Free T4'],
-    }
-    for idx, row in param_df.iterrows():
-        param = row['Test Name']
-        key = param.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_').replace('%', 'percent').replace('-', '_').replace('.', '').replace(',', '').replace('__', '_')
-        patterns = []
-        # Try all known names/abbreviations
-        for name in abbrev_map.get(param, [param]):
-            patterns.append(rf"{re.escape(name)}\s*[:=\-]?\s*([\d.]+)")
-            patterns.append(rf"{re.escape(name)}\s*[a-zA-Z]*\s*[:=\-]?\s*([\d.]+)")
-        for pat in patterns:
-            m = re.search(pat, text, re.IGNORECASE)
-            if m:
-                values[key] = m.group(1)
-                break
-    # Example condition detection (expand as needed)
-    conditions = []
-    if 'sugar' in values and float(values['sugar']) > 140:
-        conditions.append('High Blood Sugar')
-    if 'cholesterol' in values and float(values['cholesterol']) > 200:
-        conditions.append('High Cholesterol')
-    if 'hemoglobin' in values and float(values['hemoglobin']) < 12:
-        conditions.append('Anemia')
-    return values, conditions
-
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 # Generate unique patient ID
 def generate_patient_id():
     import random
@@ -948,11 +765,7 @@ class Message(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-<<<<<<< HEAD
     return db.session.get(User, int(user_id))
-=======
-    return User.query.get(int(user_id))
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 
 # Registration
 @app.route('/register', methods=['GET', 'POST'])
@@ -973,27 +786,6 @@ def register():
         db.session.add(user)
         db.session.commit()
         
-<<<<<<< HEAD
-=======
-        # Also save to Supabase
-        user_data = {
-            'id': user.id,
-            'username': username,
-            'patient_id': patient_id,
-            'age': int(age),
-            'gender': gender,
-            'height': float(height),
-            'weight': float(weight),
-            'role': role,
-            'created_at': datetime.now().isoformat()
-        }
-        supabase_result = supabase_service.create_user(user_data)
-        if supabase_result:
-            print(f"✅ User {username} also saved to Supabase")
-        else:
-            print(f"⚠️ Failed to save user {username} to Supabase")
-        
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
         flash('Registration successful! Please log in.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
@@ -1065,7 +857,6 @@ def patient_records(patient_id):
 def dashboard():
     reports = HealthReport.query.filter_by(user_id=current_user.id).order_by(HealthReport.timestamp.desc()).all()
     for report in reports:
-<<<<<<< HEAD
         try:
             report.values_dict = json.loads(report.extracted_values or '{}')
         except (json.JSONDecodeError, TypeError):
@@ -1084,16 +875,6 @@ def dashboard():
             all_keys.update(report.values_dict.keys())
     trend_keys = sorted(all_keys)
     
-=======
-        report.values_dict = json.loads(report.extracted_values or '{}')
-        report.conds_list = json.loads(report.conditions or '[]')
-    activity_logs = ActivityLog.query.filter_by(user_id=current_user.id).order_by(ActivityLog.date.desc()).all()
-    # Dynamically build trend_keys from all extracted keys in all reports
-    all_keys = set()
-    for report in reports:
-        all_keys.update(report.values_dict.keys())
-    trend_keys = sorted(all_keys)
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     # Build trend data by carrying forward last known value
     trend_data = {}
     reversed_reports = list(reversed(reports))
@@ -1101,7 +882,6 @@ def dashboard():
         values = []
         last_value = None
         for r in reversed_reports:
-<<<<<<< HEAD
             try:
                 vals = json.loads(r.extracted_values or '{}')
                 if key in vals and vals[key] not in [None, '', 'null', '']:
@@ -1171,37 +951,6 @@ def dashboard():
     # Analyze medical parameters to determine specific dietary needs
     dietary_needs = analyze_dietary_needs(latest_values, param_df, current_user.gender)
     
-=======
-            vals = json.loads(r.extracted_values or '{}')
-            if key in vals and vals[key] not in [None, '', 'null']:
-                last_value = float(vals[key])
-            values.append(last_value if last_value is not None else 0)
-        trend_data[key] = values
-    trend_labels = [r.timestamp.strftime('%Y-%m-%d') for r in reversed_reports]
-    # Report comparison logic (carry forward)
-    comparison = {}
-    if len(reports) >= 2:
-        latest = json.loads(reports[0].extracted_values)
-        prev = json.loads(reports[1].extracted_values)
-        for key in set(latest.keys()).union(prev.keys()):
-            v_new = float(latest.get(key, prev.get(key, 0)))  # Use prev if missing in latest
-            v_old = float(prev.get(key, v_new))  # Use latest if missing in prev
-            if v_new > v_old:
-                status = 'worse'
-            elif v_new < v_old:
-                status = 'improved'
-            else:
-                status = 'no_change'
-            comparison[key] = {'latest': v_new, 'previous': v_old, 'status': status}
-    # Personalized diet chart with explanations (UPGRADED)
-    food_df = pd.read_csv('food_data.csv')
-    goal = current_user.goal or 'weight_loss'
-    diet_chart = []
-    latest_conditions = []
-    if reports:
-        latest_report = reports[0]
-        latest_conditions = latest_report.conds_list if hasattr(latest_report, 'conds_list') else json.loads(latest_report.conditions or '[]')
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     # Map conditions to food tags
     condition_tags = []
     if latest_conditions:
@@ -1214,7 +963,6 @@ def dashboard():
                 condition_tags.append('diabetes')
             if 'triglycerides' in cond.lower():
                 condition_tags.append('triglycerides')
-<<<<<<< HEAD
     
     # Add dietary needs from parameter analysis
     if dietary_needs.get('needs_iron'):
@@ -1226,21 +974,13 @@ def dashboard():
     if dietary_needs.get('needs_triglyceride_control'):
         condition_tags.append('triglycerides')
     
-=======
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     # Always include goal as a tag
     if goal == 'diabetes_control':
         condition_tags.append('diabetes')
     elif goal == 'muscle_gain':
-<<<<<<< HEAD
         condition_tags.append('muscle')
     elif goal == 'weight_loss':
         condition_tags.append('weight_loss')
-=======
-        condition_tags.append('muscle')  # not in csv, but for future
-    elif goal == 'weight_loss':
-        condition_tags.append('weight_loss')  # not in csv, but for future
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     # Enhanced meal plan with better food options and specific reasons
     meal_types = ['Breakfast', 'Lunch', 'Snack', 'Dinner']
     
@@ -1285,17 +1025,12 @@ def dashboard():
         elif 'cholesterol' in condition_tags:
             primary_condition = 'cholesterol'
         
-<<<<<<< HEAD
         # Select foods for this meal - prioritize based on dietary needs
-=======
-        # Select foods for this meal
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
         if primary_condition and primary_condition in meal_suggestions[meal]:
             suggested_foods = meal_suggestions[meal][primary_condition]
         else:
             suggested_foods = meal_suggestions[meal]['default']
         
-<<<<<<< HEAD
         # Filter and prioritize foods from CSV based on actual dietary needs
         suitable_foods_from_csv = []
         if dietary_needs.get('needs_iron'):
@@ -1320,16 +1055,11 @@ def dashboard():
         
         # Build food list with specific reasons based on actual parameter values
         for food in all_suggested[:4]:  # Limit to 4 foods per meal
-=======
-        # Build food list with reasons
-        for food in suggested_foods:
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
             row = food_df[food_df['food'].str.lower() == food.lower()]
             if not row.empty:
                 food_data = row.iloc[0]
                 suitable = food_data['suitable_for']
                 
-<<<<<<< HEAD
                 # Generate specific reason based on actual medical parameters
                 reason_parts = []
                 
@@ -1370,27 +1100,13 @@ def dashboard():
                 
                 # Combine reason parts
                 reason = '. '.join(reason_parts) if reason_parts else f"Nutritious choice for {goal.replace('_', ' ')}"
-=======
-                # Generate specific reason based on condition
-                if primary_condition == 'diabetes':
-                    reason = f"Low glycemic index food to help control blood sugar levels"
-                elif primary_condition == 'anemia':
-                    reason = f"Rich in iron and nutrients to combat anemia"
-                elif primary_condition == 'cholesterol':
-                    reason = f"Heart-healthy food to help lower cholesterol"
-                else:
-                    reason = f"Balanced nutrition for overall health and {goal.replace('_', ' ')}"
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                 
                 foods.append({
                     'food': food_data['food'],
                     'calories': food_data['calories'],
-<<<<<<< HEAD
                     'protein': food_data.get('protein', 0),
                     'iron': food_data.get('iron', 0),
                     'carbs': food_data.get('carbs', 0),
-=======
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
                     'reason': reason
                 })
         
@@ -1413,7 +1129,6 @@ def dashboard():
         items = ', '.join([f["food"] for f in foods])
         total_cal = sum([int(f["calories"]) for f in foods])
         
-<<<<<<< HEAD
         # Combine reasons intelligently with specific parameter-based insights
         if dietary_needs.get('specific_recommendations'):
             # Use specific recommendations from parameter analysis
@@ -1429,14 +1144,6 @@ def dashboard():
             else:
                 primary_reason = foods[0]["reason"]
                 combined_reason = f"{primary_reason}. Additional foods provide variety and balanced nutrition."
-=======
-        # Combine reasons intelligently
-        if len(set([f["reason"] for f in foods])) == 1:
-            combined_reason = foods[0]["reason"]
-        else:
-            primary_reason = foods[0]["reason"]
-            combined_reason = f"{primary_reason} - Additional foods provide variety and balanced nutrition"
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
         
         diet_chart.append({
             'meal': meal,
@@ -1490,7 +1197,6 @@ def dashboard():
         'desc': 'Log your diet for a week',
         'unlocked': len(reports) >= 7
     })
-<<<<<<< HEAD
     # Calculate wellness score based on medical parameters
     wellness_score = calculate_wellness_score(reports, current_user.gender)
     
@@ -1537,23 +1243,14 @@ def dashboard():
     
     # Add universal tips
     wellness_tips.extend([
-=======
-    # Static wellness score and random tip
-    wellness_score = 87  # out of 100
-    wellness_tips = [
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
         "Drink plenty of water throughout the day!",
         "Take a short walk every hour to stay active.",
         "Eat a variety of colorful fruits and vegetables.",
         "Prioritize 7-8 hours of sleep each night.",
         "Practice deep breathing or meditation for stress relief.",
         "Celebrate your small health wins!"
-<<<<<<< HEAD
     ])
     
-=======
-    ]
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     wellness_tip = random.choice(wellness_tips)
     # Read all test parameter names for display
     param_df = pd.read_csv('medical_test_parameters.csv')
@@ -1568,7 +1265,6 @@ def dashboard():
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload():
-<<<<<<< HEAD
     try:
         if 'report_file' not in request.files:
             flash('No file part.', 'danger')
@@ -1625,37 +1321,6 @@ def upload():
         import traceback
         traceback.print_exc()
         flash(f'Error processing file: {str(e)}', 'danger')
-=======
-    if 'report_file' not in request.files:
-        flash('No file part.', 'danger')
-        return redirect(url_for('dashboard'))
-    file = request.files['report_file']
-    if file.filename == '':
-        flash('No selected file.', 'danger')
-        return redirect(url_for('dashboard'))
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(save_path)
-        lang = request.form.get('ocr_language', 'eng')
-        text = extract_text_from_file(save_path, lang=lang)
-        values, conditions = parse_medical_values(text)
-        shared = bool(request.form.get('shared_with_doctor'))
-        report = HealthReport(
-            filename=filename,
-            user_id=current_user.id,
-            extracted_values=json.dumps(values),
-            conditions=json.dumps(conditions),
-            diet_plan='{}',
-            shared_with_doctor=shared
-        )
-        db.session.add(report)
-        db.session.commit()
-        flash('Medical report uploaded and processed successfully!', 'success')
-        return redirect(url_for('dashboard'))
-    else:
-        flash('Invalid file type. Only PDF, JPG, JPEG, PNG allowed.', 'danger')
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
         return redirect(url_for('dashboard'))
 
 # Activity Log (POST)
@@ -1725,11 +1390,7 @@ def doctor_comment(report_id):
         flash('Comment cannot be empty.', 'danger')
     
     # Redirect back to patient records
-<<<<<<< HEAD
     patient = db.session.get(User, report.user_id)
-=======
-    patient = User.query.get(report.user_id)
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     return redirect(url_for('patient_records', patient_id=patient.patient_id))
 
 # Message management routes
@@ -1784,11 +1445,7 @@ def send_message():
         return jsonify({'success': False, 'error': 'Missing receiver_id or content'})
     
     # Verify receiver exists
-<<<<<<< HEAD
     receiver = db.session.get(User, receiver_id)
-=======
-    receiver = User.query.get(receiver_id)
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
     if not receiver:
         return jsonify({'success': False, 'error': 'Receiver not found'})
     
@@ -2028,7 +1685,6 @@ def upload_profile_image():
         flash('Invalid file type. Only JPG/PNG allowed.', 'danger')
     return redirect(url_for('dashboard'))
 
-<<<<<<< HEAD
 @app.route('/check-ocr-status')
 @login_required
 def check_ocr_status():
@@ -2066,8 +1722,6 @@ def test_extraction(report_id):
         'ocr_available': PYTESSERACT_AVAILABLE or EASYOCR_AVAILABLE
     })
 
-=======
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
 @app.route('/')
 def home():
     return redirect(url_for('login'))
@@ -2075,8 +1729,4 @@ def home():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-<<<<<<< HEAD
     app.run(debug=True, port=5001, host='127.0.0.1') 
-=======
-    app.run(debug=True) 
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
