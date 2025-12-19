@@ -98,3 +98,4 @@ For detailed macOS setup instructions, see [MACOS_SETUP.md](MACOS_SETUP.md)
 
 ## 🧑‍💻 Authors
 NutriPattern AI was developed as a **major project** with the goal of combining **AI, healthcare, and data-driven insights** into a single accessible platform.
+Project updated on Dec 2025
