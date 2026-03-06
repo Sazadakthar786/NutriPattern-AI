@@ -30,6 +30,9 @@ instance/
 uploads/
 plans.json
 
+# OCR debug output
+ocr_debug.txt
+
 # Node/bundled assets (if any)
 node_modules/
 

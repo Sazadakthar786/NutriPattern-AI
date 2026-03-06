@@ -7,6 +7,8 @@ import os
 from werkzeug.utils import secure_filename
 import random
 import pdfplumber
+import cv2
+import numpy as np
 
 # Try to import pytesseract and easyocr, make them optional
 PYTESSERACT_AVAILABLE = False
@@ -79,8 +81,8 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# OpenRouter API key from environment for production
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
+# OpenRouter API key from environment (do not hardcode secrets)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 import requests
 
@@ -88,40 +90,61 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def extract_text_with_tesseract(filepath, lang='eng'):
-    """Extract text using tesseract command line (works even if pytesseract import fails)"""
+    """Extract text using tesseract with OpenCV preprocessing for reliable OCR."""
     try:
-        # Try using pytesseract if import worked
         import pytesseract
-        return pytesseract.image_to_string(filepath, lang=lang)
+        img = cv2.imread(filepath)
+        if img is None:
+            print(f"OpenCV could not read image: {filepath}")
+            return ""
+        # Preprocess: grayscale -> Gaussian blur -> adaptive threshold
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        thresh = cv2.adaptiveThreshold(
+            blur, 255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            11, 2
+        )
+        # Run OCR on processed image; PSM 6 = uniform block of text (tables)
+        text = pytesseract.image_to_string(thresh, lang=lang, config="--psm 6")
+        # Save OCR output for debugging
+        try:
+            with open("ocr_debug.txt", "w", encoding="utf-8") as f:
+                f.write(text)
+        except Exception as e:
+            print(f"Could not write ocr_debug.txt: {e}")
+        return text
     except (ImportError, Exception):
         # Fallback to subprocess if pytesseract import failed
         try:
             import tempfile
             from PIL import Image
-            
-            # Read image
+
             img = Image.open(filepath)
-            
-            # Save to temp file
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
                 img.save(tmp.name)
                 tmp_path = tmp.name
-            
+
             try:
-                # Run tesseract command
                 result = subprocess.run(
-                    ['tesseract', tmp_path, 'stdout', '-l', lang],
+                    ['tesseract', tmp_path, 'stdout', '-l', lang, '--psm', '6'],
                     capture_output=True,
                     text=True,
                     timeout=30
                 )
                 if result.returncode == 0:
-                    return result.stdout
+                    text = result.stdout
+                    try:
+                        with open("ocr_debug.txt", "w", encoding="utf-8") as f:
+                            f.write(text)
+                    except Exception:
+                        pass
+                    return text
                 else:
                     print(f"Tesseract error: {result.stderr}")
                     return ""
             finally:
-                # Clean up temp file
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
         except Exception as e:
@@ -143,14 +166,19 @@ def extract_text_from_file(filepath, lang='eng'):
                 with pdfplumber.open(filepath) as pdf:
                     print(f"PDF has {len(pdf.pages)} pages")
                     for i, page in enumerate(pdf.pages):
-                        page_text = page.extract_text() or ''
-                        text += page_text
-                        if page_text:
-                            print(f"Extracted {len(page_text)} characters from page {i+1}")
+                        tables = page.extract_tables()
+                        if tables:
+                            for table in tables:
+                                for row in table:
+                                    text += " ".join([str(cell) for cell in row if cell]) + "\n"
+                        else:
+                            text += page.extract_text() or ""
+                    if text.strip():
+                        print(f"Extracted {len(text)} characters from PDF (tables/text)")
             except Exception as e:
                 print(f"Error reading PDF with pdfplumber: {e}")
                 text = ''
-            
+
             # If no text extracted, try OCR for scanned PDFs
             if not text.strip():
                 print("No text extracted from PDF, trying OCR...")
@@ -228,23 +256,30 @@ def extract_text_from_file(filepath, lang='eng'):
 def parse_medical_values(text):
     import re
     import pandas as pd
-    print('--- Extracted Text Start ---')
-    print(text[:500] if len(text) > 500 else text)  # Print first 500 chars to avoid too much output
-    print('--- Extracted Text End ---')
     values = {}
-    
+
     if not text or not text.strip():
         print("Warning: No text extracted from file")
         return values, []
-    
+
+    # Save OCR/text output for debugging
     try:
-        # Load all test parameters from CSV
+        with open("ocr_debug.txt", "w", encoding="utf-8") as f:
+            f.write(text)
+    except Exception as e:
+        print(f"Could not write ocr_debug.txt: {e}")
+
+    print('--- Extracted Text Start ---')
+    print(text[:500] if len(text) > 500 else text)
+    print('--- Extracted Text End ---')
+
+    try:
         param_df = pd.read_csv('medical_test_parameters.csv')
     except Exception as e:
         print(f"Error loading CSV: {e}")
         return values, []
-    
-    # Add common abbreviations for matching
+
+    # Common abbreviations for matching
     abbrev_map = {
         'Hemoglobin (Hb)': ['Hemoglobin', 'Hb', 'HGB', 'Hgb'],
         'RBC Count': ['RBC Count', 'RBC', 'Red Blood Cell'],
@@ -300,53 +335,65 @@ def parse_medical_values(text):
         'Free T4': ['Free T4', 'FT4', 'Free Thyroxine'],
     }
     
-    # Normalize text - remove extra whitespace and newlines for better matching
-    text_normalized = ' '.join(text.split())
-    
+    # Line-by-line extraction to avoid capturing reference range numbers from other lines
+    lines = text.split("\n")
+
     for idx, row in param_df.iterrows():
         param = row['Test Name']
         key = param.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_').replace('%', 'percent').replace('-', '_').replace('.', '').replace(',', '').replace('__', '_')
-        
-        # Skip if already found
+
         if key in values:
             continue
-            
+
+        # Stricter patterns: numbers immediately after test name; optional unit capture
+        names = abbrev_map.get(param, [param])
+        names = sorted(names, key=len, reverse=True)
         patterns = []
-        # Try all known names/abbreviations
-        for name in abbrev_map.get(param, [param]):
-            # More flexible patterns to match various formats
-            # Pattern 1: Name followed by colon/equals/dash and number
-            patterns.append(rf"{re.escape(name)}\s*[:=\-]\s*([\d.]+)")
-            # Pattern 2: Name followed by optional text and number
-            patterns.append(rf"{re.escape(name)}[^\d]*?([\d.]+)")
-            # Pattern 3: Name at start of line or after space, then number
-            patterns.append(rf"(?:^|\s){re.escape(name)}\s*[:=\-]?\s*([\d.]+)")
-            # Pattern 4: Number followed by name (reverse order)
-            patterns.append(rf"([\d.]+)\s*[:=\-]?\s*{re.escape(name)}")
-        
-        # Also try the parameter name itself
-        patterns.append(rf"{re.escape(param)}\s*[:=\-]\s*([\d.]+)")
-        patterns.append(rf"{re.escape(param)}[^\d]*?([\d.]+)")
-        
-        for pat in patterns:
-            try:
-                m = re.search(pat, text_normalized, re.IGNORECASE | re.MULTILINE)
+        unit_pattern = r"\s*(mg/dL|g/dL|mmol/L|IU/L|%)?"
+        for name in names:
+            patterns.append((rf"{re.escape(name)}\s*[:-]?\s*([\d.]+){unit_pattern}", True))   # with unit
+            patterns.append((rf"{re.escape(name)}\s*[:-]?\s*([\d]+\.\d+)", False))
+            patterns.append((rf"{re.escape(name)}\s*[:-]?\s*(\d+)", False))
+        patterns.append((rf"{re.escape(param)}\s*[:-]?\s*([\d.]+){unit_pattern}", True))
+        patterns.append((rf"{re.escape(param)}\s*[:-]?\s*([\d]+\.\d+)", False))
+        patterns.append((rf"{re.escape(param)}\s*[:-]?\s*(\d+)", False))
+
+        found = False
+        for pat, has_unit in patterns:
+            if found:
+                break
+            for line in lines:
+                m = re.search(pat, line, re.IGNORECASE)
                 if m:
                     value_str = m.group(1)
-                    # Validate that it's a reasonable number
+                    if not value_str:
+                        continue
+                    unit_str = m.group(2) if has_unit and m.lastindex >= 2 and m.group(2) else None
                     try:
-                        value_float = float(value_str)
-                        # Store the value
-                        values[key] = value_str
-                        print(f"Found {param}: {value_str}")
-                        break
+                        value_float = float(value_str.replace(',', '.'))
                     except ValueError:
                         continue
-            except Exception as e:
-                print(f"Error matching pattern for {param}: {e}")
-                continue
-    
-    print(f"Extracted {len(values)} values: {list(values.keys())}")
+                    # Value validation to reject OCR mistakes and reference range numbers
+                    if value_float > 1000:
+                        continue
+                    if "hemoglobin" in key and not (3 <= value_float <= 25):
+                        continue
+                    if "globulin" in key and not (0 <= value_float <= 10):
+                        continue
+                    if "uric_acid" in key and not (1 <= value_float <= 20):
+                        continue
+                    if "cholesterol" in key and "ratio" not in key and not (50 <= value_float <= 400):
+                        continue
+                    values[key] = value_str
+                    if unit_str:
+                        values[key + "_unit"] = unit_str
+                    print(f"Extracted {param}: {value_str}")
+                    found = True
+                    break
+            if found:
+                break
+
+    print(f"Extracted parameters: {list(values.keys())}")
     
     # Condition detection - use actual keys from values dict
     conditions = []
@@ -547,10 +594,11 @@ def calculate_wellness_score(reports, user_gender=None):
     
     if not extracted_values or len(extracted_values) == 0:
         return 50  # Default if no values extracted
-    
+
+    # Use path relative to app file so CSV is found regardless of cwd
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'medical_test_parameters.csv')
     try:
-        # Load medical test parameters
-        param_df = pd.read_csv('medical_test_parameters.csv')
+        param_df = pd.read_csv(csv_path)
     except Exception as e:
         print(f"Error loading CSV for wellness calculation: {e}")
         return 50
@@ -573,10 +621,10 @@ def calculate_wellness_score(reports, user_gender=None):
         
         # Convert parameter name to key format (same as in parse_medical_values)
         key = param_name.lower().replace(' ', '_').replace('(', '').replace(')', '').replace('/', '_').replace('%', 'percent').replace('-', '_').replace('.', '').replace(',', '').replace('__', '_')
-        
-        if key not in extracted_values:
+
+        if key not in extracted_values or key.endswith('_unit'):
             continue
-        
+
         try:
             value = float(extracted_values[key])
             checked_params += 1
@@ -620,9 +668,9 @@ def calculate_wellness_score(reports, user_gender=None):
                         else:
                             deviation = min(abs(value - min_val), abs(value - max_val)) / max_val if max_val > 0 else 1.0
                             severity = 1 if deviation < 0.2 else 2
-            # Handle "Less than" ranges
-            elif 'Less than' in normal_range_str or '<' in normal_range_str:
-                max_match = re.search(r'[<Less than\s]+([\d.]+)', normal_range_str)
+            # Handle "Less than" ranges (case-insensitive)
+            elif 'less than' in normal_range_str.lower() or '<' in normal_range_str:
+                max_match = re.search(r'[<\s]*(?:less\s+than\s+)?([\d.]+)', normal_range_str, re.IGNORECASE)
                 if max_match:
                     max_val = float(max_match.group(1))
                     if value <= max_val:
@@ -659,30 +707,15 @@ def calculate_wellness_score(reports, user_gender=None):
     
     if checked_params == 0:
         return 50  # No parameters checked
-    
-    # Calculate score:
-    # - Normal parameters: 100% weight
-    # - Slightly abnormal: 70% weight
-    # - Severely abnormal: 30% weight
-    # Base score from normal percentage, then adjust for abnormalities
-    base_score = (normal_params / checked_params) * 100
-    
-    # Adjust for abnormalities (penalty system)
-    if slightly_abnormal > 0:
-        penalty = (slightly_abnormal / checked_params) * 15  # 15 point penalty for slight abnormalities
-        base_score -= penalty
-    
-    if severely_abnormal > 0:
-        penalty = (severely_abnormal / checked_params) * 30  # 30 point penalty for severe abnormalities
-        base_score -= penalty
-    
-    # Ensure score is between 0 and 100
-    wellness_score = max(0, min(100, int(base_score)))
-    
-    # Bonus: If all parameters are normal, give a perfect score
+
+    # Credit-based formula: normal=100%, slight=70%, severe=40% (more balanced than penalty-only)
+    base_score = (normal_params * 100 + slightly_abnormal * 70 + severely_abnormal * 40) / checked_params
+
+    wellness_score = min(100, round(base_score))
     if normal_params == checked_params:
         wellness_score = 100
-    
+
+    print(f"Wellness: checked={checked_params}, normal={normal_params}, slight={slightly_abnormal}, severe={severely_abnormal} -> score={wellness_score}")
     return wellness_score
 
 # Generate unique patient ID
@@ -1516,43 +1549,55 @@ def chatbot():
         # Get recent activity logs
         activity_logs = ActivityLog.query.filter_by(user_id=current_user.id).order_by(ActivityLog.date.desc()).limit(5).all()
         
-        # Build context string - keep it concise to avoid token limits
-        context_parts = []
-        context_parts.append(f"User: {current_user.username}, Age: {current_user.age if current_user.age else 'N/A'}, Goal: {current_user.goal if current_user.goal else 'N/A'}")
-        
+        # Get extracted values and conditions from latest report for structured prompt
+        extracted_values = {}
+        conditions = []
         if latest_report:
             try:
                 extracted_values = json.loads(latest_report.extracted_values or '{}')
-                if extracted_values:
-                    # Only include key values, limit to 3-4 most important
-                    key_values = list(extracted_values.items())[:3]
-                    context_parts.append(f"Health Data: {', '.join([f'{k}={v}' for k, v in key_values])}")
-                
                 conditions = json.loads(latest_report.conditions or '[]')
-                if conditions:
-                    context_parts.append(f"Conditions: {', '.join(conditions[:2])}")  # Limit to 2 conditions
             except Exception as e:
                 print(f"Error parsing report data: {e}")
-        
-        if activity_logs:
-            # Only include most recent activity
-            latest_log = activity_logs[0]
-            context_parts.append(f"Recent: {latest_log.steps} steps, {latest_log.exercise}")
-        
-        # Build context string
-        context = " | ".join(context_parts)
+
+        # Get chat history from database
+        chat_history = ChatHistory.query.filter_by(user_id=current_user.id)\
+                .order_by(ChatHistory.timestamp.desc())\
+                .limit(10).all()
+        chat_history = list(reversed(chat_history))
+
+        # System prompt: simple language, structure, under 120 words
+        system_prompt = """You are an AI medical assistant helping users understand lab reports.
+Explain results in very simple language for non-medical users.
+Steps:
+1. Explain what the test means.
+2. Tell whether the value is low, normal, or high.
+3. Explain possible health conditions.
+4. Suggest simple diet or lifestyle improvements.
+5. Avoid complex medical terminology.
+Keep responses under 120 words."""
+
+        # Structured patient data for clear AI explanation
+        user_prompt = f"""
+Patient Information
+Name: {current_user.username}
+Age: {current_user.age if current_user.age else 'N/A'}
+Health Goal: {current_user.goal or 'N/A'}
+
+Extracted Lab Results
+Hemoglobin: {extracted_values.get('hemoglobin_hb', 'N/A')}
+Globulin: {extracted_values.get('globulin', 'N/A')}
+Uric Acid: {extracted_values.get('uric_acid', 'N/A')}
+
+Detected Conditions
+{', '.join(conditions) if conditions else "None detected"}
+
+User Question
+{user_message}
+
+Explain the health report clearly and provide simple recommendations.
+"""
+        context = user_prompt
         print(f"Context length: {len(context)} characters")
-        
-        # Build chat history string - limit to last 3 exchanges
-        history_str = ""
-        if chat_history:
-            recent_history = chat_history[-3:]  # Only last 3 exchanges
-            history_str = " | ".join([f"Q: {c.message} A: {c.reply[:50]}..." for c in recent_history])
-        
-        # Compose concise prompt for LLM
-        system_prompt = "You are a health assistant. Answer based ONLY on the user's data provided. Keep responses under 100 words."
-        
-        user_prompt = f"Context: {context}\n\nQuestion: {user_message}\n\nAnswer based ONLY on the user's data above:"
         
         print(f"Calling OpenRouter API...")
         
@@ -1563,7 +1608,7 @@ def chatbot():
         }
         
         data = {
-            'model': 'deepseek/deepseek-r1-0528:free',
+            'model': 'deepseek/deepseek-chat',
             'messages': [
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}

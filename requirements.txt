@@ -1,27 +1,29 @@
-Flask==2.3.3
-Flask-SQLAlchemy==3.0.5
-Flask-Login==0.6.3
-Werkzeug==2.3.7
-pytesseract==0.3.10
-<<<<<<< HEAD
-pdfplumber==0.9.0
-numpy>=1.24.0,<2.0.0
-pandas>=2.0.0
+# NutriPattern AI - Flask healthcare app
+# Core
+Flask>=2.3.0
+Flask-SQLAlchemy>=3.0.0
+Flask-Login>=0.6.0
+Werkzeug>=2.3.0
+
+# Database (SQLite built-in; for production use postgres)
+# No extra DB driver needed for SQLite
+
+# PDF & documents
+pdfplumber>=0.10.0
+pdf2image>=1.16.0
+
+# OCR & image processing
+opencv-python>=4.8.0
+numpy>=1.24.0
+pytesseract>=0.3.10
 Pillow>=10.0.0
-requests==2.31.0
-python-dotenv==1.0.0
-gunicorn==21.2.0
-pdf2image==1.17.0
-=======
-easyocr==1.7.0
-pdfplumber==0.9.0
-numpy>=2.3.2
-pandas>=2.2.0
-Pillow==10.4.0
-requests==2.31.0
-python-dotenv==1.0.0 
-gunicorn==21.2.0
-psycopg2-binary==2.9.9
-pdf2image==1.17.0
-supabase==0.7.1
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
+
+# Optional: better OCR (install if needed)
+# easyocr>=1.7.0
+
+# Data & HTTP
+pandas>=2.0.0
+requests>=2.31.0
+
+# Environment (optional)
+python-dotenv>=1.0.0
