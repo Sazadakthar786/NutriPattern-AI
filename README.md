@@ -97,10 +97,6 @@ For detailed macOS setup instructions, see [MACOS_SETUP.md](MACOS_SETUP.md)
 
 ---
 
-## 🧑‍💻 Authors
+## 🧑‍💻 Authors: SHAIK SAZAD AKTHAR
 NutriPattern AI was developed as a **major project** with the goal of combining **AI, healthcare, and data-driven insights** into a single accessible platform.
-Project updated on Dec 2025
-=======
-## 🧑‍💻 Authors
-NutriPattern AI was developed as a **major project** with the goal of combining **AI, healthcare, and data-driven insights** into a single accessible platform.
->>>>>>> 6857d89f95aeedc44347b2f46e5db54147f99ffe
+Project updated on March 2026
