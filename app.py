@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -37,6 +37,8 @@ except ImportError:
     EASYOCR_AVAILABLE = False
 import json
 import pandas as pd
+from io import BytesIO
+from nutri_report_generator import generate_patient_report
 
 # Remove unused LLM imports and keys
 # import openai
@@ -1770,6 +1772,130 @@ def test_extraction(report_id):
 @app.route('/')
 def home():
     return redirect(url_for('login'))
+
+@app.route('/download_report')
+@login_required
+def download_report():
+    # Fetch all data same way as dashboard route does
+    reports = HealthReport.query.filter_by(user_id=current_user.id).order_by(HealthReport.timestamp.desc()).all()
+    
+    # Build comparison dict (copy exact logic from dashboard route)
+    comparison = {}
+    latest_conditions = []
+    doctor_notes = None
+    report_date = "N/A"
+    
+    if reports:
+        latest_report = reports[0]
+        report_date = latest_report.timestamp.strftime("%d %b %Y")
+        try:
+            latest_conditions = json.loads(latest_report.conditions or '[]')
+        except:
+            latest_conditions = []
+        doctor_notes = latest_report.doctor_comment
+        
+    if len(reports) >= 2:
+        try:
+            latest_vals = json.loads(reports[0].extracted_values or '{}')
+            prev_vals = json.loads(reports[1].extracted_values or '{}')
+        except:
+            latest_vals, prev_vals = {}, {}
+        for key in set(latest_vals.keys()).union(prev_vals.keys()):
+            try:
+                v_new = float(latest_vals.get(key, prev_vals.get(key, 0))) if latest_vals.get(key) or prev_vals.get(key) else 0
+                v_old = float(prev_vals.get(key, latest_vals.get(key, 0))) if prev_vals.get(key) or latest_vals.get(key) else 0
+                status = 'worse' if v_new > v_old else ('improved' if v_new < v_old else 'no_change')
+                comparison[key] = {'latest': v_new, 'previous': v_old, 'status': status}
+            except:
+                continue
+    elif len(reports) == 1:
+        try:
+            latest_vals = json.loads(reports[0].extracted_values or '{}')
+            for key, value in latest_vals.items():
+                try:
+                    comparison[key] = {'latest': float(value), 'previous': None, 'status': 'no_change'}
+                except:
+                    continue
+        except:
+            pass
+    
+    # Build parameters dict from comparison
+    parameters = {}
+    for key, data in comparison.items():
+        if key.endswith('_unit'):
+            continue
+        parameters[key] = {
+            "value": data["latest"],
+            "previous": data["previous"],
+            "status": "Normal",   # default — we don't have range data here so just show value
+            "change": data["status"]
+        }
+    
+    # Get diet_chart from latest report
+    diet_chart = []
+    if reports:
+        try:
+            diet_chart = json.loads(reports[0].diet_plan or '[]')
+        except:
+            diet_chart = []
+    
+    # Get wellness score
+    import pandas as pd
+    param_df = pd.read_csv('medical_test_parameters.csv')
+    wellness_score = calculate_wellness_score(reports, current_user.gender)
+    
+    # Get wellness tips (reuse same logic as dashboard)
+    wellness_tips = []
+    if latest_conditions:
+        if any('diabetes' in c.lower() or 'sugar' in c.lower() for c in latest_conditions):
+            wellness_tips.append("Monitor your blood sugar levels regularly and maintain a balanced diet.")
+            wellness_tips.append("Choose low glycemic index foods to help control blood sugar.")
+        if any('cholesterol' in c.lower() for c in latest_conditions):
+            wellness_tips.append("Focus on heart-healthy foods and regular exercise to manage cholesterol.")
+        if any('anemia' in c.lower() for c in latest_conditions):
+            wellness_tips.append("Include iron-rich foods like spinach, lentils, and lean meats in your meals.")
+            wellness_tips.append("Pair iron-rich foods with vitamin C to enhance absorption.")
+    wellness_tips.extend([
+        "Drink plenty of water throughout the day.",
+        "Walk 30 minutes daily to stay active.",
+        "Prioritize 7-8 hours of sleep each night.",
+        "Eat a variety of colorful fruits and vegetables.",
+        "Practice deep breathing for stress relief."
+    ])
+    
+    # Activity summary
+    activity_logs = ActivityLog.query.filter_by(user_id=current_user.id).all()
+    activity_summary = {
+        "total_steps": sum((log.steps or 0) for log in activity_logs),
+        "total_calories": sum((log.calories or 0) for log in activity_logs),
+        "days_logged": len(activity_logs)
+    }
+    
+    # Build patient_data
+    patient_data = {
+        "name": current_user.username,
+        "age": current_user.age or "N/A",
+        "gender": current_user.gender or "N/A",
+        "report_date": report_date,
+        "parameters": parameters,
+        "diet_chart": diet_chart,
+        "wellness_score": wellness_score,
+        "wellness_tips": wellness_tips[:6],
+        "doctor_notes": doctor_notes,
+        "conditions": latest_conditions,
+        "activity_summary": activity_summary,
+        "username": current_user.patient_id,
+    }
+    
+    pdf_buffer = generate_patient_report(patient_data)
+    filename = f"NutriPattern_Report_{current_user.username}_{datetime.now().strftime('%Y%m%d')}.pdf"
+    
+    return send_file(
+        pdf_buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename
+    )
 
 if __name__ == '__main__':
     with app.app_context():

@@ -2064,3 +2064,27 @@ main {
 .messages-link:hover .message-badge {
     background: #c1121f;
 } 
+
+.nutri-download-btn {
+    display: inline-block;
+    background-color: #0D5C3A;
+    color: #ffffff;
+    padding: 11px 26px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    box-shadow: 0 4px 14px rgba(13, 92, 58, 0.25);
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.nutri-download-btn:hover {
+    background-color: #1A7A50;
+    transform: translateY(-1px);
+}
+
+.nutri-download-btn:active {
+    transform: translateY(0px);
+}
